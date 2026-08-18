@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+node_modules/
+__pycache__/
+.venv/
+venv/
+target/
+out/
+cache/
+coverage/
+.DS_Store
+
+# Local Agent Zero and ASE runtime state
+.a0proj/
+.ase/

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "project_name": "BackerZero",
+  "project_slug": "backerzero-strk20",
+  "hackathon": "STRK20 Private Sprint 2026",
+  "mission": "Build a first-place STRK20 Private Sprint submission.",
+  "product": "BackerZero — public crowdfunding campaigns, private backers, and trustless shielded refunds on Starknet.",
+  "status": "scaffold_created",
+  "deployment": null,
+  "contracts": [],
+  "transactions": [],
+  "demo_url": null
+}

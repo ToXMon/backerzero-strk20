@@ -1,0 +1,9 @@
+- Goal: maximize the official STRK20 hackathon judging score.
+- MVP first: Create Campaign → Back Privately → Claim Funding → Claim Refund.
+- Never fabricate transactions, deployments, demos, tests, audits, or privacy claims.
+- Never put private keys, seed phrases, secrets, or credentials in Git.
+- Do not broadcast mainnet transactions or deploy mainnet contracts without explicit human approval.
+- Prefer current official STRK20 and Starknet documentation over model memory.
+- Keep architecture simple until the MVP works on mainnet.
+- Update docs/PROJECT_STATE.md after meaningful work.
+- Surface uncertainty instead of guessing.
