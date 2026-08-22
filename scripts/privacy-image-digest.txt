@@ -1,0 +1,5 @@
+# Immutable digest manifest for the hosted transaction-prover image.
+# No authoritative registry digest was obtained during this local-only run.
+# The hosted workflow must fail closed until an upstream-verified digest is
+# added in this format; the tag alone is intentionally insufficient.
+# ghcr.io/starkware-libs/starknet-privacy/transaction-prover:PRIVACY-0.14.3-RC.2@sha256:<64 lowercase hex characters>

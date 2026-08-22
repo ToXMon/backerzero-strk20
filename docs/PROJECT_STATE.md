@@ -2,9 +2,26 @@
 
 - Project: BackerZero
 - Slug: `backerzero-strk20`
-- Stage: Scaffold created; ready for specification.
-- Implemented: Isolated repository and requested directory structure.
-- Deployments: None.
-- Transactions: None.
-- Demo: None.
-- Tests: Not run; application dependencies were not installed.
+- Current phase: Technical verification / authorization gate
+- Architecture status: Documentation architecture and threat model drafted; implementation decisions remain gated by unverified pool/token/API compatibility and unresolved, unaudited bearer-secret refund/open-note destination semantics.
+- Prompt 4B baseline: **PASS** — isolated baseline and non-private local path verified.
+- Prompt 4B-2A upstream runtime: **PARTIAL** — pinned source path and local hosted-runner preparation are guarded; fresh isolated bootstrap currently fails closed because authoritative archive checksums are not committed; real prover and generic real-proof E2E are not verified.
+- Toolchain selectors are immutably pinned in `scripts/privacy-env.sh`; the bootstrap path uses format-independent extraction, archive-member safety checks, and checksum verification. Successful fresh-shell bootstrap is not claimed until authoritative checksums are committed and downloads complete.
+- Resolved upstream stack: source commit `b59d8a141e49a9d940fb14dfe935cbecb8202814`; README service row `PRIVACY-0.14.3-RC.2`; checked-in SDK manifest `0.14.3-rc.5`; RC.5 versus RC.2 remains an unresolved compatibility discrepancy.
+- ComputeAndInvoke: **NOT_VERIFIED** — not ready; real privacy proof, verification, simulation, submission, and settlement were not demonstrated. Generic E2E account classification is **NOT_REACHED**, not evidence of a browser-wallet requirement.
+- Authorization decisions: bearer secret = REJECTED; private refund MVP = DEFER_FAIL_CLOSED; safe to Prompt 5 = NO.
+- MVP: Create Campaign → Back Privately → Claim Funding → Claim Refund, using one stateful Cairo helper, one verified STRK20 pool, and one fixed ERC-20 token on Starknet mainnet.
+- Major risks:
+  - Live STRK20 pool, token, decimals, Wallet API versions, helper ABI, and open-note semantics are not all verified.
+  - Identity-bound `ComputeAndInvoke` conformance is NOT_VERIFIED; real privacy lifecycle remains a blocker.
+  - Bearer-secret refund authorization is REJECTED; private refund MVP is DEFER_FAIL_CLOSED.
+  - Cairo/TypeScript Poseidon commitment parity needs an authoritative fixture.
+  - Mainnet proving, relayer behavior, fees, deadlines, and transaction latency require rehearsal.
+  - The current local `strk20.json` is not submission-ready and must match the official manifest schema before release.
+  - Mainnet deployment and qualifying pool-interaction evidence require human-approved monetary operations.
+- Implemented: Local devnet/helper declaration and deployment, sncast invoke, and starknet.js client execution succeeded; evidence is recorded. Hosted-runner preparation scripts/workflow now exist under `scripts/` and `.github/workflows/`; no remote workflow or hosted image execution was performed.
+- Deployments: Local devnet/helper deployment only; no mainnet deployment. No prover, discovery service, or container runtime was started.
+- Transactions: Local development execution verified; no mainnet or real-funds activity occurred.
+- Demo: No privacy demo; non-private local path verified.
+- Tests: Prompt 4B isolated baseline and non-private local path PASS; hosted-runner syntax/policy guards and fail-closed bootstrap/pin checks PASS; successful fresh-shell bootstrap, hosted image pull, remote workflow execution, and real privacy proof/E2E lifecycle are not demonstrated.
+- Next action: Do not proceed to Prompt 5; obtain the pinned transaction-prover runtime/service and run the smallest generic upstream real-proof E2E, or keep the private refund MVP deferred fail-closed.

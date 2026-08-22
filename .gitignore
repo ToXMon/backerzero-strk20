@@ -8,6 +8,8 @@ venv/
 target/
 out/
 cache/
+**/.tools/
+**/.snfoundry_cache/
 coverage/
 .DS_Store
 

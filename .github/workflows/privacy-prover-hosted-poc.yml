@@ -1,0 +1,130 @@
+name: Privacy prover hosted POC (manual, fail-closed)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: privacy-prover-hosted-poc
+  cancel-in-progress: true
+
+jobs:
+  hosted-prover-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify local script syntax
+        run: bash -n scripts/privacy-env.sh scripts/run-privacy-e2e.sh
+
+      - name: Pull and verify exact prover image
+        env:
+          IMAGE_TAG: ghcr.io/starkware-libs/starknet-privacy/transaction-prover:PRIVACY-0.14.3-RC.2
+          DIGEST_FILE: scripts/privacy-image-digest.txt
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          IMAGE_REF="$(python3 - "$IMAGE_TAG" "$DIGEST_FILE" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          image = sys.argv[1]
+          digest_file = Path(sys.argv[2])
+          expected = next(
+              (line.rsplit("@", 1)[1] for line in digest_file.read_text().splitlines() if line.startswith(image + "@")),
+              "",
+          )
+          if not re.fullmatch(r"sha256:[0-9a-f]{64}", expected):
+              raise SystemExit("ERROR: no authoritative digest is committed for the exact prover image; refusing tag-only execution")
+          print(f"{image}@{expected}")
+          PY
+          )"
+          export IMAGE_REF
+          docker pull "$IMAGE_REF"
+          inspect_file="$(mktemp)"
+          trap 'rm -f "$inspect_file"' EXIT
+          docker image inspect "$IMAGE_REF" > "$inspect_file"
+          IMAGE_REF="$IMAGE_REF" INSPECT_FILE="$inspect_file" python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          image_ref = os.environ["IMAGE_REF"]
+          expected = image_ref.rsplit("@", 1)[1]
+          record = json.loads(Path(os.environ["INSPECT_FILE"]).read_text())[0]
+          repo_digests = record.get("RepoDigests") or []
+          digest = next((item.rsplit("@", 1)[1] for item in repo_digests if item.endswith("@" + expected)), "")
+          facts = {
+              "image": image_ref.split("@", 1)[0],
+              "immutable_ref": image_ref,
+              "digest": digest,
+              "architecture": record.get("Architecture", ""),
+              "os": record.get("Os", ""),
+          }
+          Path("evidence/image-facts.json").write_text(json.dumps(facts, sort_keys=True) + "\n")
+          if digest != expected:
+              raise SystemExit("ERROR: pulled immutable prover image digest does not match committed digest")
+          if facts["architecture"] != "amd64" or facts["os"] != "linux":
+              raise SystemExit("ERROR: exact prover image is not linux/amd64")
+          PY
+
+      - name: Stop before undocumented prover invocation
+        run: |
+          set -euo pipefail
+          # The pinned source reviewed for this project does not establish a
+          # compatible health/spec/request/proof contract for this image. This
+          # deliberate failure prevents guessed Pathfinder/prover commands,
+          # endpoints, request bodies, dependencies, or proof assertions.
+          ./scripts/run-privacy-e2e.sh --verify-hosted-contract
+
+      - name: Upload bounded non-sensitive preflight evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: privacy-prover-hosted-poc-evidence
+          path: evidence/image-facts.json
+          if-no-files-found: ignore
+          retention-days: 3
+          include-hidden-files: false
+
+      - name: Clean up local image
+        if: always()
+        env:
+          IMAGE_TAG: ghcr.io/starkware-libs/starknet-privacy/transaction-prover:PRIVACY-0.14.3-RC.2
+          DIGEST_FILE: scripts/privacy-image-digest.txt
+        run: |
+          set -euo pipefail
+          IMAGE_REF="$(python3 - "$IMAGE_TAG" "$DIGEST_FILE" <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          image = sys.argv[1]
+          digest_file = Path(sys.argv[2])
+          expected = next(
+              (line.rsplit("@", 1)[1] for line in digest_file.read_text().splitlines() if line.startswith(image + "@")),
+              "",
+          )
+          if not re.fullmatch(r"sha256:[0-9a-f]{64}", expected):
+              raise SystemExit("ERROR: no authoritative digest is committed; refusing cleanup of an unvalidated image reference")
+          print(f"{image}@{expected}")
+          PY
+          )"
+          IMAGE_DIGEST="${IMAGE_REF##*@}"
+          [[ "$IMAGE_REF" == "$IMAGE_TAG@"* && "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            printf 'ERROR: refusing cleanup of invalid immutable image reference: %s\n' "$IMAGE_REF" >&2
+            exit 1
+          }
+          if docker image rm "$IMAGE_REF"; then
+            printf 'Removed validated immutable image: %s\n' "$IMAGE_REF"
+          else
+            printf 'Image cleanup skipped; validated immutable image was not present: %s\n' "$IMAGE_REF"
+          fi

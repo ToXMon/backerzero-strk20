@@ -1,0 +1,6 @@
+# SHA-256 manifest for bootstrap archives used by scripts/run-privacy-e2e.sh.
+# Deliberately contains no trusted entries: official release checksums/signatures
+# were not obtained and must be added from authoritative upstream evidence before
+# bootstrap can download or extract anything. The script fails closed otherwise.
+# Format when authoritative evidence is available:
+# <64 lowercase hex characters><two spaces><archive filename>
