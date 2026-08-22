@@ -1,75 +1,41 @@
 # Devin Takeover Handoff
 
+## Canonical context
+
+Read [`PROJECT_CONTEXT.md`](PROJECT_CONTEXT.md) first. It is the canonical takeover handoff for BackerZero and governs the mission, STRK20 Privacy Sprint 2026 judging objective, MVP scope, architecture/privacy boundary, evidence status, exact files, next actions, constraints, and stop conditions. This file is only a concise operational pointer and must not contradict it.
+
 ## Mission and MVP
 
-BackerZero is a Starknet/STRK20 crowdfunding MVP:
+BackerZero is the Starknet/STRK20 crowdfunding MVP: **Public campaigns. Private backers. Trustless refunds.** The required flow is:
 
 **Create Campaign → Back Privately → Claim Funding → Claim Refund**
 
-Keep the implementation narrow: one browser application, one stateful Cairo helper, one verified STRK20 pool, and one fixed ERC-20 token. No backend, database, custom privacy service, cross-chain support, or multi-token scope.
+The intended scope is one browser app, one stateful Cairo helper, one configured STRK20 pool, and one fixed ERC-20 token. Do not broaden scope before required pool and lifecycle evidence exists.
 
-## Non-negotiable security decisions
+## Refund authorization gate
 
 - **Bearer-secret refunds are rejected.** A receipt preimage alone does not prove recipient authorization, prevent replay, or bind the open-note destination.
-- **Identity-bound `ComputeAndInvoke` is intended** for creator claims/refunds and exact wallet/application-context binding.
-- **No fallback.** If exact-wallet conformance cannot be established, defer/fail closed. Do not silently substitute a bearer secret, guessed capability flow, or anonymous/replay-safe claim.
-- Never log, upload, emit, screenshot, or fixture receipt secrets, viewing keys, private keys, seed phrases, or credentials.
+- Identity-bound **`ComputeAndInvoke`** is intended, but is currently **`PROTOCOL_SUPPORTED_BUT_CLIENT-UNVERIFIED`** and requires an exact-wallet conformance POC.
+- **No fallback.** If exact-wallet conformance is not established, defer the private refund flow and fail closed. Do not substitute a bearer secret, guessed capability, or anonymous claim.
+- Never place receipt secrets, viewing keys, private keys, seed phrases, credentials, or equivalent private material in calldata, logs, artifacts, fixtures, screenshots, analytics, commits, or manifests.
 
-## Verified baseline and current boundary
+## Evidence boundary
 
-- Pinned upstream source: `starkware-libs/starknet-privacy` commit `b59d8a141e49a9d940fb14dfe935cbecb8202814`.
-- Documented upstream README prover row: `PRIVACY-0.14.3-RC.2`.
-- Checked-in SDK manifest: `0.14.3-rc.5`; RC.5 versus README RC.2 remains a compatibility discrepancy.
-- Local selectors are immutable in `scripts/privacy-env.sh`: Node `24.8.0`, Scarb `2.18.0`, Starknet Foundry `0.63.0`, starknet-devnet `0.8.0-rc.3`.
-- Prompt 4B isolated baseline and non-private local path: **PASS**.
-- Local helper declaration/deployment, `sncast` invoke, and starknet.js client execution: **verified locally only**.
-- No mainnet deployment, broadcast, real-funds activity, prover runtime, privacy proof, or production audit is claimed.
+- Pinned upstream `starknet-privacy` commit: `b59d8a141e49a9d940fb14dfe935cbecb8202814`.
+- Documented BackerZero GitHub handoff commit: `1c49b764f80d56040cf0aba8007f452172d36ec2`.
+- RC discrepancy remains unresolved: the official prover row is `PRIVACY-0.14.3-RC.2`, while the checked-in SDK manifest is `0.14.3-rc.5`; do not mix revisions speculatively.
+- Failed Actions run: <https://github.com/ToXMon/backerzero-strk20/actions/runs/32551221317>.
+- The exact recorded failure was the deliberate preflight guard stopping **before `docker pull`** because `scripts/privacy-image-digest.txt` contained no authoritative immutable digest. This does not prove GHCR authentication, tag, platform-resolution, or prover-runtime failure.
+- There is **no verified real privacy proof, generic private E2E lifecycle, or `ComputeAndInvoke` POC**. Generic E2E is **`NOT_REACHED`**; `ComputeAndInvoke` is **`NOT_VERIFIED`**. ADR-002 remains **`BLOCKED / PENDING EXACT-WALLET-CONFORMANCE-POC`** and private refunds remain **`DEFER_FAIL_CLOSED`**.
+- Local Prompt 4B evidence is only a local devnet/non-private baseline; it is not mainnet, proof, production, or complete-lifecycle evidence.
 
-## Canonical upstream architecture
+## Immediate next actions
 
-The intended upstream shape is: browser → official STRK20 Wallet API → wallet proof/prover/simulation → wallet/relayer → Starknet; the STRK20 pool calls the single BackerZero Cairo helper through `privacy_invoke`. Private funding uses shielded balance reads, private action preparation, literal `OPEN` handling where required, and pool-funded helper invocation. Release flows must use the wallet-resolved `OpenNoteDeposit` plus identity-bound `ComputeAndInvoke` context. Exact-wallet conformance and recipient/destination binding are **NOT_VERIFIED** and block refund implementation.
+1. Read `docs/PROJECT_CONTEXT.md`, `docs/PROJECT_STATE.md`, `docs/TECHNICAL_VERIFICATION.md`, `docs/ADR/002-refund-authorization.md`, `docs/ARCHITECTURE.md`, `docs/THREAT_MODEL.md`, `docs/OPEN_QUESTIONS.md`, and `docs/BUILD_PACKET.md`.
+2. If separately authorized, retrieve targeted authenticated logs/artifacts for run `32551221317` and preserve the exact blocker.
+3. Obtain and independently verify authoritative digest metadata for the unchanged official RC.2 image and one compatible prover-contract row; otherwise preserve the blocker.
+4. Keep `strk20.json` unsubmitted and free of placeholders or fabricated hashes.
 
-## Exact GitHub state
+## Stop conditions and constraints
 
-- Expected handoff baseline commit: `1c49b764f80d56040cf0aba8007f452172d36ec2`.
-- Hosted workflow: <https://github.com/ToXMon/backerzero-strk20/actions/runs/32551221317>
-- The run failed at the exact official GHCR prover image pull/verification gate for:
-  `ghcr.io/starkware-libs/starknet-privacy/transaction-prover:PRIVACY-0.14.3-RC.2`
-- The workflow is deliberately fail-closed when no authoritative immutable digest is committed. It does not prove that the image, prover contract, or privacy lifecycle works.
-- **No proof is claimed.** No real privacy proof, generic private E2E, or `ComputeAndInvoke` POC has been verified.
-
-## Inspect first
-
-- `docs/PROJECT_STATE.md`
-- `docs/ARCHITECTURE.md`
-- `docs/TECHNICAL_VERIFICATION.md`
-- `docs/ADR/002-refund-authorization.md`
-- `.github/workflows/privacy-prover-hosted-poc.yml`
-- `scripts/privacy-env.sh`
-- `scripts/run-privacy-e2e.sh`
-- `scripts/privacy-image-digest.txt`
-- `scripts/privacy-prover-contract.env`
-- `poc/compute-and-invoke/` (local-only POC materials; do not treat as verified privacy evidence)
-
-## Devin's next actions
-
-1. Use authenticated GitHub CLI/API run and job logs for run `32551221317`; preserve the exact failing step, job conclusion, and relevant GHCR error. Do not infer from summaries or rerun unrelated tests.
-2. Confirm whether the failure is registry authentication/permission, tag availability, manifest/platform resolution, digest verification, or the deliberate missing-authoritative-digest guard. Record the exact blocker and evidence.
-3. If and only if an authoritative digest for the unchanged official RC.2 image and its documented compatible prover contract can be independently established, propose the smallest **fail-closed** patch. Pin by digest; retain exact tag/image identity and platform checks; do not invoke undocumented endpoints or commands.
-4. Otherwise make no speculative code change and report the exact blocker, logs, and required upstream evidence. Do not rebuild, substitute, retag, use `latest`, or use another prover image.
-5. Stop after this diagnosis/patch-or-blocker report. Do not implement refund logic, continue the prover investigation beyond the targeted diagnosis, repeat SDK research, run generic E2E/`ComputeAndInvoke`, or begin Prompt 5.
-
-## Constraints
-
-- Local/dev only; no mainnet deployment, broadcast, wallet signing, or real funds.
-- No secrets or private user material in Git, logs, artifacts, fixtures, or screenshots.
-- Never use `latest`, a substitute image, a rebuilt image, or an unverified tag-only reference for the official prover.
-- Preserve fail-closed behavior and distinguish mocked/local checks from real wallet/mainnet evidence.
-
-## Acceptance criteria
-
-- Authenticated logs identify the precise GHCR pull/verification failure, or a minimal digest-only fail-closed patch is proposed with evidence and reviewable diff.
-- The unchanged official image identity and pinned upstream source remain explicit.
-- No refund logic, generic private E2E, ComputeAndInvoke POC, Prompt 5 work, mainnet activity, or privacy claim is introduced.
-- Any patch has targeted syntax/tests only; no generated files, caches, `.tools`, `node_modules`, `target`, secrets, or unrelated files are staged.
-- Final report states clearly: **no real privacy proof, generic private E2E, or `ComputeAndInvoke` POC has been verified.**
+Work only in `/a0/usr/projects/backerzero-strk20`. Do not run generic E2E or generic `ComputeAndInvoke`. Do not begin Prompt 5. Do not implement refund logic, do not revive bearer-secret authorization, and do not broaden prover investigation beyond a targeted diagnosis/blocker report. Do not deploy to mainnet, broadcast transactions, use real funds, fabricate evidence, commit, or push. Preserve all uncertainty and distinguish local/mock evidence from verified wallet, proof, and mainnet evidence.
