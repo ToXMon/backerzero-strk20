@@ -16,6 +16,10 @@ name: privacy-prover-cpu-isa-probe
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/privacy-prover-cpu-isa-probe.yml"
+      - "scripts/privacy-image-digest.txt"
 
 permissions:
   contents: read
