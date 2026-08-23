@@ -58,7 +58,7 @@ jobs:
           fetch-depth: 1
 
       - name: Setup Node.js
-        uses: actions/setup-node@1e0f6e51b7d76153ffd4c0ca0f1c69c00feac1e5 # v4.0.3
+        uses: actions/setup-node@v4
         with:
           node-version: "24"
 
