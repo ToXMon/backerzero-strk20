@@ -91,6 +91,19 @@ This establishes the identity-bound, one-time, destination-bound authorization p
 | CI | **PASS** | `.github/workflows/ci.yml` |
 | Branch / PR | **PASS** | `devin/prompt5a-protocol` → `main` |
 
+## Prompt 5B execution attempt — 2026-08-23
+
+- **Status:** `BLOCKED_BEFORE_BROADCAST`
+- **Network:** Sepolia preflight only (`SN_SEPOLIA`); `mainnetInvolved: false`.
+- **Evidence:** `poc/compute-and-invoke/e2e/evidence/prompt5b-sepolia-lifecycle.json`
+- **Local baseline:** `scarb fmt --check` PASS; `scarb build` PASS; `snforge test` not run because `universal-sierra-compiler` is unavailable. TypeScript `npm ci --include=dev`, typecheck, lint, and 16 tests PASS.
+- **Sepolia preflight:** chain ID and read-only RPC connectivity verified; no broadcasts occurred.
+- **Hard blockers:** no pinned Universal Sierra Compiler, no pinned upstream privacy checkout, and no external disposable accounts file at `$HOME/.bz-sepolia/accounts.json`.
+- **Lifecycle:** declaration, deployment, campaigns, private backing, creator claim, refund, and negative transactions were not reached.
+- **Funding:** no faucet request or transaction was attempted because no account address or signer was available. Exact STRK and token requirements remain unknown until calldata and fee estimates are prepared.
+
+The prior Prompt 4 evidence above remains historical evidence and is not evidence that this Prompt 5B attempt completed.
+
 ## Next action
 
-Prepare for Prompt 5B Sepolia lifecycle: run mocked end-to-end contract deployment flow, then execute a tiny-value rehearsal against the verified Sepolia privacy runtime row after human approval.
+Obtain the pinned Universal Sierra Compiler and upstream privacy checkout, provide funded disposable Sepolia accounts outside Git, independently verify the authorized Sepolia pool/token/decimals, then rerun the Prompt 5B gates. Keep all broadcasts Sepolia-only and human-approved; do not update `strk20.json` from testnet evidence.
