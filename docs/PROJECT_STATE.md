@@ -2,9 +2,10 @@
 
 - Project: BackerZero
 - Slug: `backerzero-strk20`
-- Current phase: Technical verification / authorization gate — **Prompt 4 complete**
+- Current phase: **Prompt 5A complete** — production Cairo protocol, test suite, shared fixtures, and STRK20 action layer implemented.
 - Prompt 4 classification: **GO_FULL**
-- Architecture status: The official privacy runtime row is established, a real generic privacy proof lifecycle is verified on Starknet Sepolia, and the identity-bound `ComputeAndInvoke` authorization/negative-test suite passes. Prompt 5 is cleared for all four MVP flows.
+- Prompt 5A status: **PASS**
+- Architecture status: The official privacy runtime row is established, a real generic privacy proof lifecycle is verified on Starknet Sepolia, and the identity-bound `ComputeAndInvoke` authorization/negative-test suite passes. All four MVP flows are implemented, unit-tested, and CI-configured.
 
 ## Prompt 4 verification results
 
@@ -69,6 +70,27 @@ This establishes the identity-bound, one-time, destination-bound authorization p
 - Private refund: **APPROVED_FOR_BUILD** via identity-bound `ComputeAndInvoke`, subject to the helper contract enforcing campaign/contribution binding and exact `OpenNoteDeposit` output validation.
 - Prompt 5: **CLEARED_FULL**.
 
+## Prompt 5A implementation summary
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Cairo helper contract | **PASS** | `contracts/src/backerzero.cairo` |
+| Cairo build | **PASS** | `scarb build` succeeds |
+| Campaign creation | **PASS** | Unit tested (`test_create_campaign_ok`) |
+| Pool-only private backing | **PASS** | `back` accepts only configured pool; no backer address stored |
+| Explicit escrow/liability accounting | **PASS** | `total_escrow` + per-campaign raised/refunded/claimed |
+| Creator claim | **PASS** | `claim_funding` with `creator_claim_commitment` |
+| ComputeAndInvoke refund | **PASS** | `claim_refund` validates `refund_id`, identity binding, destination, one-time state |
+| OpenNoteDeposit payout/refund semantics | **PASS** | Returns exact `OpenNoteDeposit` with `note_id=0`, token, amount |
+| Bearer-secret refund absent | **PASS** | Only identity-bound `ComputeAndInvoke` refund path exists |
+| Cairo tests | **PASS** | 28/28 `snforge test` |
+| TypeScript STRK20 action package | **PASS** | `packages/strk20-actions` |
+| Shared Cairo/TypeScript fixtures | **PASS** | `contracts/tests/fixtures.cairo` + `packages/strk20-actions/src/fixtures.ts` |
+| TypeScript tests | **PASS** | 16/16 `vitest run` |
+| Typecheck | **PASS** | `tsc --noEmit` |
+| CI | **PASS** | `.github/workflows/ci.yml` |
+| Branch / PR | **PASS** | `devin/prompt5a-protocol` → `main` |
+
 ## Next action
 
-Begin Prompt 5 MVP implementation: implement the Create Campaign → Back Privately → Claim Funding → Claim Refund flows, starting with the stateful Cairo helper contract and wallet/client integration against the verified `computeAndInvoke` and `OpenNoteDeposit` semantics.
+Prepare for Prompt 5B Sepolia lifecycle: run mocked end-to-end contract deployment flow, then execute a tiny-value rehearsal against the verified Sepolia privacy runtime row after human approval.
