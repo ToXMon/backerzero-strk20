@@ -6,10 +6,11 @@ BackerZero is a narrow Starknet mainnet MVP: **Create Campaign → Back Privatel
 
 The following status is authoritative for this document:
 
-- **PROTOCOL-SUPPORTED BUT CLIENT-UNVERIFIED:** The documented Wallet API/private invocation/OpenNoteDeposit mechanics provide the protocol shape for private balance reads, `strk20PrepareInvoke(actions, true)`, pool-funded helper invocation, `privacy_invoke`, empty `Span<OpenNoteDeposit>` retention, and exact release instructions. Exact-wallet identity-bound `ComputeAndInvoke` conformance is not verified.
+- **IMPLEMENTED:** The `BackerZero` Cairo helper contract, test suite, shared Poseidon fixtures, and `strk20-actions` TypeScript package are implemented and unit-tested.
+- **PROTOCOL-SUPPORTED BUT CLIENT-UNVERIFIED:** The documented Wallet API/private invocation/OpenNoteDeposit mechanics provide the protocol shape for private balance reads, `strk20PrepareInvoke(actions, true)`, pool-funded helper invocation, `privacy_invoke`, empty `Span<OpenNoteDeposit>` retention, and exact release instructions. Exact-wallet identity-bound `ComputeAndInvoke` conformance is verified by the Prompt 4 POC, but no live-wallet Prompt 5B lifecycle run has been completed yet.
 - **UNVERIFIED:** Current mainnet pool address, token address and decimals, final pool/token compatibility, exact final helper compatibility, deployment, and any transaction evidence.
 - **REJECTED DESIGN:** Bearer-secret refund authorization must not be silently adopted. A receipt preimage alone does not establish recipient authorization, replay resistance, or safe open-note destination binding.
-- **BLOCKER:** An exact-wallet conformance POC for identity-bound `ComputeAndInvoke` must pass before refund implementation or readiness/privacy claims.
+- **BLOCKER (now Prompt 5B):** A live Sepolia lifecycle run (Create Campaign → Back Privately → Claim Funding → Claim Refund) must pass before mainnet readiness/privacy claims.
 
 No address, token, ABI, deployment, or transaction hash in this architecture is release evidence until verified by current official documentation and read-only chain checks.
 
@@ -64,7 +65,7 @@ The application must stop before deployment, broadcast, or monetary operation un
 
 ## Exactly one Cairo helper
 
-BackerZero has one stateful Cairo helper contract and no second application contract. The helper:
+BackerZero has one stateful Cairo helper contract (`contracts/src/backerzero.cairo`) and no second application contract. The helper:
 
 - Is configured for exactly one verified STRK20 pool and one verified token.
 - Accepts `privacy_invoke` only from that configured pool.
@@ -74,8 +75,9 @@ BackerZero has one stateful Cairo helper contract and no second application cont
 - Uses checked arithmetic and validates positive values, campaign state, deadlines, token, amount, campaign, commitment uniqueness, and solvency.
 - Returns an empty `Span<OpenNoteDeposit>` when a private contribution is retained in escrow.
 - Changes state before external approval/output interaction for creator claims and refunds, then returns one exact `OpenNoteDeposit` for the release amount.
+- Computes a deterministic campaign ID from `chain_id`, helper, creator, goal, and deadline (low 64 bits of a domain-separated Poseidon hash).
 
-The final Cairo interface, calldata ordering, serialization, and compatibility with the live pool are still unverified. The helper must not be described as deployed or tested until those facts are established.
+The Cairo interface, calldata ordering, and serialization are implemented and unit-tested; compatibility with the live STRK20 pool and exact wallet `ComputeAndInvoke` flows remains unverified until a Prompt 5B live run.
 
 ## Campaign state machine
 
@@ -103,7 +105,7 @@ No refund is valid before the deadline. No creator claim is valid before the dea
 
 ### Contribution
 
-The browser generates a random receipt secret locally and computes a domain-separated Poseidon commitment containing, at minimum, version/domain, chain ID, helper address, campaign ID, and secret. The exact field order and encoding require a shared Cairo/TypeScript fixture before implementation. The private pool withdrawal funds the helper atomically with `Back`. The helper verifies pool caller, campaign, token, amount, deadline, unused commitment, and solvency, then increments `raised`, outstanding liabilities, and the contribution record without a backer address.
+The browser generates a random receipt secret locally and computes a domain-separated Poseidon commitment containing, at minimum, version/domain, chain ID, helper address, campaign ID, and secret. The exact field order and encoding are captured in shared Cairo/TypeScript fixtures (`contracts/tests/fixtures.cairo` and `packages/strk20-actions/src/fixtures.ts`). The private pool withdrawal funds the helper atomically with `Back`. The helper verifies pool caller, campaign, token, amount, deadline, unused commitment, and solvency, then increments `raised`, outstanding liabilities, and the contribution record without a backer address.
 
 ### Creator capability
 
@@ -152,20 +154,20 @@ Before implementation, define fixtures for exact Poseidon parity, campaign-state
 - One browser application is the only off-chain application component.
 - One stateful Cairo helper owns campaign state and liabilities.
 - One configured STRK20 pool and one fixed ERC-20 are MVP constraints.
-- Wallet API/private invocation/OpenNoteDeposit mechanics are verified.
+- Wallet API/private invocation/OpenNoteDeposit mechanics are verified by the Prompt 4 POC.
 - Current pool, token, decimals, final compatibility, deployment, and transactions are unverified.
 - `privacy_invoke` must accept calls only from the configured pool.
 - Raw token balance is not application accounting; explicit liabilities are required.
 - Commitments bind domain, chain, helper, campaign, and secret with shared Poseidon fixtures.
 - Campaign outcome is derived from deadline, goal, raised total, and claim state.
 - Refund and creator claim state must change before release interactions.
-- Identity-bound `ComputeAndInvoke` is the intended refund architecture, classified `PROTOCOL_SUPPORTED_BUT_CLIENT_UNVERIFIED`; exact-wallet conformance POC is a blocker.
-- Bearer-secret refund authorization is rejected and cannot be silently adopted; fallback is defer/fail-closed or a tightly bound capability design with no anonymous/replay-safe claims.
+- Identity-bound `ComputeAndInvoke` is the intended refund architecture, classified `PROTOCOL_SUPPORTED` by the Prompt 4 POC; the Prompt 5B live-wallet lifecycle remains the next gate.
+- Bearer-secret refund authorization is rejected and cannot be silently adopted.
 - Mainnet deployment, broadcasts, and monetary operations require human approval.
 
 ## Required contracts
 
-Exactly one Cairo helper contract, configured only after the live STRK20 pool, token, decimals, ABI, and compatibility are verified. No deployment is currently present.
+Exactly one Cairo helper contract, configured only after the live STRK20 pool, token, decimals, ABI, and compatibility are verified. The contract implementation lives in `contracts/src/backerzero.cairo` and `contracts/src/hashing.cairo`; no live deployment is currently present.
 
 ## Required frontend components
 

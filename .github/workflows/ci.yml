@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main, devin/prompt5a-protocol]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cairo:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Setup Scarb
+        uses: software-mansion/setup-scarb@v1
+        with:
+          scarb-version: "2.18.0"
+
+      - name: Setup Starknet Foundry
+        uses: foundry-rs/setup-snfoundry@v4
+        with:
+          starknet-foundry-version: "0.63.0"
+
+      - name: Format check
+        run: |
+          cd contracts
+          scarb fmt --check
+
+      - name: Build Cairo contracts
+        run: |
+          cd contracts
+          scarb build
+
+      - name: Run Cairo tests
+        run: |
+          cd contracts
+          snforge test
+
+  typescript:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1e0f6e51b7d76153ffd4c0ca0f1c69c00feac1e5 # v4.0.3
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        run: |
+          cd packages/strk20-actions
+          npm install
+
+      - name: Typecheck
+        run: |
+          cd packages/strk20-actions
+          npm run typecheck
+
+      - name: Lint
+        run: |
+          cd packages/strk20-actions
+          npm run lint
+
+      - name: Run TypeScript tests
+        run: |
+          cd packages/strk20-actions
+          npm test
