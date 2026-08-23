@@ -1,5 +1,22 @@
 # Immutable digest manifest for the hosted transaction-prover image.
-# No authoritative registry digest was obtained during this local-only run.
-# The hosted workflow must fail closed until an upstream-verified digest is
-# added in this format; the tag alone is intentionally insufficient.
-# ghcr.io/starkware-libs/starknet-privacy/transaction-prover:PRIVACY-0.14.3-RC.2@sha256:<64 lowercase hex characters>
+#
+# Verified 2026-08-23 from GHCR registry metadata and independently confirmed
+# with `docker buildx imagetools inspect` and a local `docker pull` by digest.
+#
+# OCI index (multi-arch, pull this):
+ghcr.io/starkware-libs/starknet-privacy/transaction-prover:PRIVACY-0.14.3-RC.2@sha256:a2f71d7139069fa566c4f44bdd66b79cac992c0cbc20ddf0af3a3558c6cabd64
+#
+# Platform manifests referenced by the index above:
+#   linux/amd64 sha256:a62e7764e034ea25d84d4a235f1f683f7c5f03f88f6646a744599171bf5ca58c
+#   linux/arm64 sha256:9882d27692b420a9edae9b50bf8075103044230de0f83ee6bed3db19cace105f
+#
+# Image labels: version=PRIVACY-0.14.3-RC.2
+#               revision=e6b6fd2e9932909107833579e5b6efd6c75fa0af
+# Entrypoint:   /app/target/release/starknet_transaction_prover
+# Exposed port: 3000/tcp
+# Runtime version reported by the binary: 0.19.0-rc.2
+# starknet_specVersion reported by the service: 0.10.3-rc.2
+#
+# ISA CONSTRAINT (verified, see docs/TECHNICAL_VERIFICATION.md):
+# the linux/amd64 binary contains AMD-only SSE4a instructions (EXTRQ/INSERTQ)
+# and aborts with SIGILL (exit 132) on Intel hosts.
