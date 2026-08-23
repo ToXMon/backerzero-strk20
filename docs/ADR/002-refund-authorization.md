@@ -1,9 +1,37 @@
 # ADR-002: Refund authorization
 
-- **Status:** `BLOCKED / PENDING EXACT-WALLET-CONFORMANCE-POC`
+- **Status:** `BLOCKED / PENDING REAL-PROOF EVIDENCE` (was `PENDING EXACT-WALLET-CONFORMANCE-POC`)
 - **Decision:** Target identity-bound `ComputeAndInvoke` refund authorization.
-- **Classification:** `PROTOCOL_SUPPORTED_BUT_CLIENT_UNVERIFIED`
+- **Classification:** `BINDING_DEMONSTRATED_ON_DEVNET_PROOF_SOUNDNESS_UNVERIFIED`
+- **Refund decision:** `DEFER_FAIL_CLOSED`
 - **Scope:** Failed-campaign refunds that release an `OpenNoteDeposit` from the stateful BackerZero helper.
+
+## 2026-08-23 POC update
+
+The conformance POC was executed against the pinned upstream stack
+(`poc/compute-and-invoke/e2e/bz-compute-invoke.test.ts`, reproduced by
+`scripts/run-privacy-real-proof.sh`; full evidence in
+`docs/TECHNICAL_VERIFICATION.md` §9):
+
+- `computeAndInvoke` **is** protocol-supported and **is** exposed by the pinned
+  SDK builder; the positive path settled a dapp payout into the intended open
+  note on devnet.
+- Post-authorization tampering of the public outside-execution calldata fails
+  closed: amount, action selector, open-note destination, and invoked-target
+  substitution all revert with `INVALID_PROOF_MSG`.
+- Replaying a consumed authorization reverts with `NON_ZERO_VALUE`.
+- The compute context (`dapp_name`, sequence nonce) is not present in public
+  calldata; the pool derives the identity key itself and the context is committed
+  in the proof's private inputs, so context substitution is not expressible
+  through the client API.
+
+**Why this does not unblock the ADR:** all of the above ran with the upstream
+devnet mock proof provider, because a real proof cannot be produced against
+`starknet-devnet` (it does not implement `starknet_getStorageProof`). The
+evidence therefore covers the pool contract's binding and nullifier logic, not
+proof soundness, and no BackerZero refund path was exercised. Refunds remain
+`DEFER_FAIL_CLOSED` until the same tests pass with a real proof on a
+storage-proof-capable network.
 
 ## Context
 
@@ -89,4 +117,4 @@ These sources establish the revision to inspect for protocol/client behavior. Th
 
 ## Exit criteria
 
-ADR-002 is no longer blocked only when the selected wallet/client POC and reviewed fixtures demonstrate the identity-bound flow, exact `OpenNoteDeposit` handling, destination binding, one-time replay resistance, failure behavior, and supported-version compatibility. Until then, implementation remains gated.
+ADR-002 is no longer blocked only when the tests above are re-run with a **real** proof on a storage-proof-capable network and the selected wallet/client POC and reviewed fixtures demonstrate the identity-bound flow, exact `OpenNoteDeposit` handling, destination binding, one-time replay resistance, failure behavior, and supported-version compatibility. Until then, implementation remains gated.

@@ -149,3 +149,102 @@ No source reviewed here proves that BackerZero is deployed, has completed a main
 - The packet's `strk20.json` example is incomplete as a submission specification unless it matches the repository's documented root fields and verification rules; the current local file is not submission-ready.
 - The packet treats the stateful escrow pattern as the core refund mechanism, but the official example's unaudited status means refund authorization requires a design/security decision before implementation.
 - The packet's version recommendations are usable as a starter snapshot, but exact versions must be pinned together with a current `starknet-privacy` compatibility row.
+
+## 9. Privacy runtime execution — EXECUTED, REAL PROOF BLOCKED ON RPC CAPABILITY (2026-08-23)
+
+Prompt 4 Part A/B/C/D were executed with Docker, GHCR, and the pinned upstream
+checkout. Reproduce with `scripts/run-privacy-real-proof.sh`.
+
+### Compatibility row (independently verified)
+
+| Field | Value |
+| --- | --- |
+| Image | `ghcr.io/starkware-libs/starknet-privacy/transaction-prover:PRIVACY-0.14.3-RC.2` |
+| OCI index digest | `sha256:a2f71d7139069fa566c4f44bdd66b79cac992c0cbc20ddf0af3a3558c6cabd64` |
+| linux/amd64 manifest | `sha256:a62e7764e034ea25d84d4a235f1f683f7c5f03f88f6646a744599171bf5ca58c` |
+| linux/arm64 manifest | `sha256:9882d27692b420a9edae9b50bf8075103044230de0f83ee6bed3db19cace105f` |
+| Image labels | `version=PRIVACY-0.14.3-RC.2`, `revision=e6b6fd2e9932909107833579e5b6efd6c75fa0af` |
+| Prover binary version | `0.19.0-rc.2`; `starknet_specVersion` → `0.10.3-rc.2` |
+| Source commit | `b59d8a141e49a9d940fb14dfe935cbecb8202814` |
+| SDK package | `0.14.3-rc.5` (checked in at that commit) |
+| Privacy contracts | `PRIVACY-0.14.3-RC.0` |
+| Discovery service | `PRIVACY-0.14.3-RC.2` (built from source at the pinned commit) |
+| Node dependency | Pathfinder `v0.22.7`; devnet `v0.8.0-rc.3` |
+
+The RC.2 image is authoritative and exists: it was pulled by immutable digest and
+its labels point at the same release train as the README row. The `0.14.3-rc.5`
+SDK package version is the in-repo package version at the pinned commit, not a
+separate runtime row; RC.2 remains the runtime row to use. Both are recorded
+rather than merged.
+
+### Runtime execution status
+
+- Prover starts, initialises its precomputes, and serves JSON-RPC on `:3000`.
+- The SDK client reaches the prover and `starknet_proveTransaction` is accepted
+  and executed (`Starting transaction proving`).
+- ISA constraint: the linux/amd64 binary contains 11 AMD-only SSE4a
+  instructions (`EXTRQ`/`INSERTQ`) and aborts with SIGILL (exit 132) on Intel
+  hosts. Evidence: `.github/workflows/privacy-prover-cpu-isa-probe.yml`.
+  The linux/arm64 manifest under `qemu-user` emulation runs the proving path.
+
+### Real-proof blocker (root cause)
+
+`starknet_proveTransaction` requires `starknet_getStorageProof` from its RPC node.
+`starknet-devnet` does not implement it:
+
+```console
+$ curl -s -X POST http://127.0.0.1:5050 -H 'content-type: application/json' \
+    -d '{"jsonrpc":"2.0","id":1,"method":"starknet_getStorageProof","params":{"block_id":"latest","class_hashes":[],"contract_addresses":[],"contracts_storage_keys":[]}}'
+{"jsonrpc":"2.0","id":1,"error":{"code":42,"message":"Devnet doesn't support storage proofs"}}
+```
+
+The prover surfaces exactly this upstream error, and the SDK propagates it:
+
+```text
+prove_transaction failed: RunnerError(ProofProvider(UpstreamRpcError { code: 42,
+  message: "Devnet doesn't support storage proofs", data: None }))
+ProvingServiceError: Devnet doesn't support storage proofs
+```
+
+This is consistent with the upstream design: the compatibility row pairs the
+prover with Pathfinder, upstream's own devnet tests use
+`ScreeningCallMockProofProvider`, and upstream's real-proof tests live in
+`e2e/tests/integration/` against a live (integration Sepolia) deployment
+requiring `VITE_RPC_URL`, `VITE_PROVING_SERVICE_URL`, and funded accounts.
+
+**Conclusion:** a real-proof privacy lifecycle is not obtainable on a local
+devnet with this runtime row. It requires a storage-proof-capable node
+(Pathfinder) plus a live-testnet privacy pool deployment and funded disposable
+accounts. Evidence: `poc/compute-and-invoke/e2e/evidence/`.
+
+### ComputeAndInvoke conformance (Part D)
+
+`poc/compute-and-invoke/e2e/bz-compute-invoke.test.ts`, derived from upstream
+`shadow-account-compute-invoke.test.ts`, run on the devnet harness (mock proof
+provider, since a real proof is unobtainable there — the negative tests exercise
+the pool contract's binding/nullifier logic, not proof soundness):
+
+| Test | Result | Failure mode |
+| --- | --- | --- |
+| Positive path | Accepted; open note filled with the exact payout | — |
+| Replay of the same authorization | Rejected | `NON_ZERO_VALUE` |
+| Amount substitution | Rejected | `INVALID_PROOF_MSG` |
+| Calldata/action substitution (selector) | Rejected | `INVALID_PROOF_MSG` |
+| Destination substitution (open-note id) | Rejected | `INVALID_PROOF_MSG` |
+| Wrong context (anonymizer target address) | Rejected | `INVALID_PROOF_MSG` |
+| Wrong context (dapp name / compute data) | Not tamperable | Value is absent from public calldata; it is committed in the proof's private inputs, so post-authorization substitution is not expressible through the client API |
+
+Action structure that was exercised (`computeAndInvoke`):
+
+- `contractAddress` — the anonymizer invoked by the pool;
+- `computeAdditionalData` — `[dappName, seqNonce]`, fed to
+  `privacy_compute(identity_key, dapp_name, nonce)`; the pool prepends the derived
+  identity key, so the resulting commitment selects a per-identity shadow account;
+- `invokeAdditionalData` — ABI-compiled `privacy_invoke_with_computation` args
+  (`Array<Call>`, `Span<OpenNoteCollect>`) with the leading identity commitment
+  sliced off because the pool prepends it.
+
+Destination binding is therefore established at the *open-note id* level
+(substituting it fails), and identity/context binding is established by
+construction (the identity key is derived inside the pool and the dapp/nonce
+context is committed in-proof, not in public calldata).
