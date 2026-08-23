@@ -268,6 +268,33 @@ fails), and identity/context binding is established by construction (the identit
 key is derived inside the pool and the dapp/nonce context is committed in-proof,
 not in public calldata).
 
+## Prompt 5B Sepolia execution attempt — 2026-08-23
+
+The autonomous Prompt 5B attempt stopped before any declaration, deployment, or lifecycle broadcast. It confirmed the Sepolia chain identity and read-only RPC reachability but did not establish a complete production path.
+
+Evidence: `poc/compute-and-invoke/e2e/evidence/prompt5b-sepolia-lifecycle.json`.
+
+| Check | Result | Detail |
+| --- | --- | --- |
+| Sepolia chain identity | **PASS** | `SN_SEPOLIA`; read-only block probe returned block `13926977` |
+| PublicNode header RPC | **PASS** | `starknet_specVersion` `0.10.2` |
+| Cartridge transaction RPC | **PASS** | `starknet_specVersion` `0.9.0` |
+| `scarb fmt --check` | **PASS** | Contracts format clean |
+| `scarb build` | **PASS** | BackerZero artifacts generated |
+| `snforge test` | **BLOCKED** | `universal-sierra-compiler` unavailable |
+| TypeScript typecheck/lint | **PASS** | Development dependencies installed explicitly |
+| TypeScript tests | **PASS** | 16/16 |
+| Universal Sierra Compiler | **BLOCKED** | No executable found in the pinned/tool search paths |
+| Pinned privacy checkout | **BLOCKED** | `/tmp/starknet-privacy-b59d8a1` absent |
+| Disposable Sepolia accounts | **BLOCKED** | `$HOME/.bz-sepolia/accounts.json` absent |
+| Authorized pool/token/decimals | **NOT_ESTABLISHED** | Prior pool address probe alone is insufficient |
+| Declaration/deployment/lifecycle | **NOT_REACHED** | No chain broadcast occurred |
+| Mainnet involvement | **NONE** | This attempt was Sepolia preflight only |
+
+No faucet attempt was made because no external account address or signer was available. The minimum STRK requirement cannot be responsibly quoted before exact declaration/deployment/lifecycle calldata and fee estimates exist; the minimum token requirement also remains unknown until the authorized Sepolia pool, token, and decimals are verified.
+
+The prior Prompt 4 real-proof records in this document remain historical evidence. They do not establish that this Prompt 5B attempt completed, and no Prompt 5B transaction hash or deployment address is claimed here.
+
 ## 10. Conclusion for Prompt 4
 
 - **Generic real-proof E2E:** PASS — real STARK proof generated and settled on

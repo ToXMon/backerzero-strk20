@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "run": {
+    "label": "prompt5b-sepolia-lifecycle",
+    "dateUtc": "2026-08-23",
+    "network": "SN_SEPOLIA",
+    "mainnetInvolved": false,
+    "status": "BLOCKED_BEFORE_BROADCAST",
+    "repositoryBranch": "adal/prompt5b-sepolia-lifecycle",
+    "operatorApproval": {
+      "deployment": true,
+      "lifecycleBroadcasts": true
+    }
+  },
+  "baseline": {
+    "cairo": {
+      "scarbFmtCheck": "PASS",
+      "scarbBuild": "PASS",
+      "snforgeTest": "BLOCKED",
+      "snforgeBlocker": "universal-sierra-compiler binary unavailable"
+    },
+    "typescript": {
+      "npmCiIncludeDev": "PASS",
+      "typecheck": "PASS",
+      "lint": "PASS",
+      "tests": "PASS",
+      "testsPassed": 16
+    }
+  },
+  "environment": {
+    "cpuArchitecture": "x86_64",
+    "cpuModel": "DO-Regular",
+    "nodeVersion": "20.20.2",
+    "scarbVersion": "2.18.0",
+    "snforgeVersion": "0.63.0",
+    "sepoliaChainId": "0x534e5f5345504f4c4941",
+    "sepoliaBlockAtPreflight": 13926977,
+    "headerRpc": "https://starknet-sepolia-rpc.publicnode.com",
+    "headerRpcSpecVersion": "0.10.2",
+    "transactionRpc": "https://api.cartridge.gg/x/starknet/sepolia",
+    "transactionRpcSpecVersion": "0.9.0",
+    "universalSierraCompiler": "MISSING",
+    "upstreamPrivacyCheckout": "MISSING",
+    "accountsFile": "$HOME/.bz-sepolia/accounts.json",
+    "accountsFileStatus": "MISSING"
+  },
+  "artifacts": {
+    "sierraArtifact": "contracts/target/dev/backerzero_BackerZero.contract_class.json",
+    "sierraArtifactSha256": "2cc1718a3d75454d1935304d827e9078a39ae89ba092afc081001ca4e49d6b3a",
+    "casmArtifact": "contracts/target/dev/backerzero_BackerZero.compiled_contract_class.json",
+    "casmArtifactSha256": "f6dc1347cda2273db282b1870b187e10738043e280bdc8bd46d76029fb88c912",
+    "declarationTx": null,
+    "helperAddress": null,
+    "deploymentTx": null
+  },
+  "priorPublicPoolProbe": {
+    "poolClassAddress": "0x52107fadffab71bdcbb6b2ccb68ba3e1b5558d94036538053e159d3076ad633",
+    "poolInstanceAddress": "0x02967c66092142d39c6918d632694054224d1419fa65f591fb049b464ee856ce",
+    "poolClassProbe": "CONTRACT_NOT_FOUND",
+    "poolInstanceProbe": "CLASS_RESOLVED",
+    "note": "This probe did not establish the authorized Prompt 5B pool/token configuration."
+  },
+  "lifecycle": {
+    "createSuccessCampaign": "NOT_REACHED",
+    "privateBackSuccess": "NOT_REACHED",
+    "claimFunding": "NOT_REACHED",
+    "createFailureCampaign": "NOT_REACHED",
+    "privateBackFailure": "NOT_REACHED",
+    "claimRefund": "NOT_REACHED"
+  },
+  "negativeTests": {
+    "localCairoSuite": "NOT_RUN_SNFORGE_BLOCKED",
+    "SepoliaNegativeTransactions": "NOT_RUN_NO_FUNDED_ACCOUNTS_AND_NO_DEPLOYMENT",
+    "existingTypeScriptConformanceTests": "NOT_RUN_IN_THIS_ATTEMPT"
+  },
+  "funding": {
+    "disposableSepoliaAccounts": "UNAVAILABLE",
+    "minimumStrkDryRunRequirement": "Unknown until exact declaration/deployment/lifecycle calldata and fee estimates are available.",
+    "minimumTokenRequirement": "Unknown until authoritative Sepolia pool/token/decimals are verified.",
+    "attemptedFaucet": false,
+    "reason": "No external account file or account address was available; no faucet request or transaction was attempted."
+  },
+  "blockers": [
+    "Pinned Universal Sierra Compiler is unavailable, so snforge test cannot run locally.",
+    "Pinned upstream starknet-privacy checkout at /tmp/starknet-privacy-b59d8a1 is unavailable.",
+    "External disposable Sepolia accounts file $HOME/.bz-sepolia/accounts.json is unavailable.",
+    "The live authorized Sepolia STRK20 pool/token/decimals configuration was not established from the available evidence."
+  ],
+  "secretsPolicy": {
+    "privateKeysRecorded": false,
+    "seedPhrasesRecorded": false,
+    "viewingKeysRecorded": false,
+    "receiptSecretsRecorded": false,
+    "credentialsRecorded": false
+  }
+}
