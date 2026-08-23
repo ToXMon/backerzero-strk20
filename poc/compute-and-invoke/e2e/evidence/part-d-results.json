@@ -1,0 +1,30 @@
+[
+  [
+    "amount substitution",
+    "REJECTED: executeOutside reverted: Transaction execution has failed:\n0: Error in the called contract (contract address: 0x025a6c9f ... 5fe0315b865816db0d9fc8ac36aca73a6571f7e, class hash: 0x011f2db4363af28fd0c7dbfd4d8160a320d826b0df63b16d23675e41a9ca965a, selector: 0x0246333a752c1ac637ff1591c5c885e27d56060d241a29aad8475072da0777db):\n0x494e56414c49445f50524f4f465f4d5347 ('INVALID_PROOF_MSG').\n"
+  ],
+  [
+    "calldata/action substitution",
+    "REJECTED: executeOutside reverted: Transaction execution has failed:\n0: Error in the called contract (contract address: 0x025a6c9f ... 5fe0315b865816db0d9fc8ac36aca73a6571f7e, class hash: 0x011f2db4363af28fd0c7dbfd4d8160a320d826b0df63b16d23675e41a9ca965a, selector: 0x0246333a752c1ac637ff1591c5c885e27d56060d241a29aad8475072da0777db):\n0x494e56414c49445f50524f4f465f4d5347 ('INVALID_PROOF_MSG').\n"
+  ],
+  [
+    "destination substitution",
+    "REJECTED: executeOutside reverted: Transaction execution has failed:\n0: Error in the called contract (contract address: 0x025a6c9f ... 5fe0315b865816db0d9fc8ac36aca73a6571f7e, class hash: 0x011f2db4363af28fd0c7dbfd4d8160a320d826b0df63b16d23675e41a9ca965a, selector: 0x0246333a752c1ac637ff1591c5c885e27d56060d241a29aad8475072da0777db):\n0x494e56414c49445f50524f4f465f4d5347 ('INVALID_PROOF_MSG').\n"
+  ],
+  [
+    "wrong context (dapp name)",
+    "NOT_TAMPERABLE: value absent from public calldata (bound in proof inputs)"
+  ],
+  [
+    "wrong context (anonymizer target)",
+    "REJECTED: executeOutside reverted: Transaction execution has failed:\n0: Error in the called contract (contract address: 0x025a6c9f ... 5fe0315b865816db0d9fc8ac36aca73a6571f7e, class hash: 0x011f2db4363af28fd0c7dbfd4d8160a320d826b0df63b16d23675e41a9ca965a, selector: 0x0246333a752c1ac637ff1591c5c885e27d56060d241a29aad8475072da0777db):\n0x494e56414c49445f50524f4f465f4d5347 ('INVALID_PROOF_MSG').\n"
+  ],
+  [
+    "positive path",
+    "ACCEPTED, open note filled with 100000000000000000000"
+  ],
+  [
+    "replay of the same authorization",
+    "REJECTED: executeOutside reverted: Transaction execution has failed:\n0: Error in the called contract (contract address: 0x025a6c9f ... a1b5ea3da5fe0315b865816db0d9fc8ac36aca73a6571f7e, class hash: 0x011f2db4363af28fd0c7dbfd4d8160a320d826b0df63b16d23675e41a9ca965a, selector: 0x0246333a752c1ac637ff1591c5c885e27d56060d241a29aad8475072da0777db):\n0x4e4f4e5f5a45524f5f56414c5545 ('NON_ZERO_VALUE').\n"
+  ]
+]

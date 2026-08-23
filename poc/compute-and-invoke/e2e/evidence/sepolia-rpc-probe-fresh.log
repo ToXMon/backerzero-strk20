@@ -1,0 +1,29 @@
+=== https://starknet-sepolia-rpc.publicnode.com
+  specVersion : {"jsonrpc":"2.0","result":"0.10.2","id":1}
+  chainId     : {"jsonrpc":"2.0","result":"0x534e5f5345504f4c4941","id":1}
+
+  storageProof: {"jsonrpc":"2.0","result":{"classes_proof":[],"contracts_proof":{"nodes":[],"contract_leaves_data":[]},"contracts_storage_proofs":[],"global_roots":{"contracts_tree_root":"0x7b91aa9af7efabd94bc59018a7268e9f309c821c926e6f0cc2fe6810f1a562f","classes_tree_root":"0x60d847a8b48bc0047433af751c89f92fc75e97
+  pathfinder  : {"jsonrpc":"2.0","error":{"code":-32601,"message":"Method Not Found"},"id":1}
+  juno        : {"jsonrpc":"2.0","result":"v0.16.3","id":1}
+  bigBody     : {"jsonrpc": "2.0", "id": -1, "code": -32601, "error": "Request body size limit reached. To remove restrictions, order a dedicated full node here: https://www.allnodes.com/stark/host"}
+=== https://api.cartridge.gg/x/starknet/sepolia
+  specVersion : {"id":1,"jsonrpc":"2.0","result":"0.9.0"}
+  chainId     : {"id":1,"jsonrpc":"2.0","result":"0x534e5f5345504f4c4941"}
+  storageProof: {"id":1,"jsonrpc":"2.0","result":{"classes_proof":[],"contracts_proof":{"contract_leaves_data":[],"nodes":[]},"contracts_storage_proofs":[],"global_roots":{"block_hash":"0x20edcbd6aa4d838dc8b1611622f5f4a5f7c8ffe0a56c1e445757f9fd8d5bbbb","classes_tree_root":"0x60d847a8b48bc0047433af751c89f92fc75e9763
+  pathfinder  : {"error":{"code":-32601,"message":"Method not found"},"id":1,"jsonrpc":"2.0"}
+  juno        : {"error":{"code":-32601,"message":"Method not found"},"id":1,"jsonrpc":"2.0"}
+  bigBody     : {"error":{"code":-32602,"data":{"reason":"This method takes no inputs"},"message":"Invalid params"},"id":1,"jsonrpc":"2.0"}
+=== https://api.zan.top/starknet-sepolia
+  specVersion : {"id":1,"jsonrpc":"2.0","result":"0.9.0"}
+  chainId     : {"id":1,"jsonrpc":"2.0","result":"0x534e5f5345504f4c4941"}
+  storageProof: {"id":1,"jsonrpc":"2.0","result":{"classes_proof":[],"contracts_proof":{"contract_leaves_data":[],"nodes":[]},"contracts_storage_proofs":[],"global_roots":{"block_hash":"0x622c1d22414da249019ff967eef4ba4fb8d7707e8511919ef8d8b7a1e869ebb","classes_tree_root":"0x60d847a8b48bc0047433af751c89f92fc75e9763
+  pathfinder  : {"error":{"code":-32011,"data":{"traceId":"1a02cccbbdc8e10d"},"message":"cu limit exceeded; Request too fast per second.
+  juno        : {"error":{"code":-32601,"data":{"traceId":"1a02cccbf539eb11"},"message":"method error; invalid method: juno_version"},"i
+  bigBody     : {"error":{"code":-32602,"data":{"reason":"This method takes no inputs"},"message":"Invalid params"},"id":1,"jsonrpc":"2.0"}
+=== https://starknet-sepolia.drpc.org
+  specVersion : {"id":1,"jsonrpc":"2.0","result":"0.10.2"}
+  chainId     : {"id":1,"jsonrpc":"2.0","result":"0x534e5f5345504f4c4941"}
+  storageProof: {"id":1,"jsonrpc":"2.0","error":{"message":"method is not available","code":-32601}}
+  pathfinder  : {"id":1,"jsonrpc":"2.0","error":{"message":"method is not available","code":-32601}}
+  juno        : {"id":1,"jsonrpc":"2.0","error":{"message":"method is not available","code":-32601}}
+  bigBody     : {"id":1,"jsonrpc":"2.0","error":{"message":"Invalid Params","code":-32602,"data":"expected between 0 and 0 params, got 1"}}

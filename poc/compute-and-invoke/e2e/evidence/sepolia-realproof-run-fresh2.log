@@ -1,0 +1,56 @@
+
+== starting RPC capability proxy on :8547 ==
+
+== pulling/starting prover: ghcr.io/starkware-libs/starknet-privacy/transaction-prover@sha256:9882d27692b420a9edae9b50bf8075103044230de0f83ee6bed3db19cace105f ==
+[proxy] :8547 headers=https://starknet-sepolia-rpc.publicnode.com proofs=https://api.cartridge.gg/x/starknet/sepolia
+ghcr.io/starkware-libs/starknet-privacy/transaction-prover@sha256:9882d27692b420a9edae9b50bf8075103044230de0f83ee6bed3db19cace105f: Pulling from starkware-libs/starknet-privacy/transaction-prover
+Digest: sha256:9882d27692b420a9edae9b50bf8075103044230de0f83ee6bed3db19cace105f
+Status: Image is up to date for ghcr.io/starkware-libs/starknet-privacy/transaction-prover@sha256:9882d27692b420a9edae9b50bf8075103044230de0f83ee6bed3db19cace105f
+ghcr.io/starkware-libs/starknet-privacy/transaction-prover@sha256:9882d27692b420a9edae9b50bf8075103044230de0f83ee6bed3db19cace105f
+
+== waiting for prover readiness on http://127.0.0.1:3000 ==
+{"jsonrpc":"2.0","id":1,"result":"0.10.3-rc.2"}
+
+== installing POC tests into the pinned upstream checkout ==
+
+== Part C — real-prover privacy lifecycle on Sepolia ==
+
+ RUN  v4.1.3 /home/ubuntu/starknet-privacy/e2e
+
+stderr | tests/integration/bz-sepolia-real-proof.test.ts > BackerZero real-proof lifecycle (Sepolia) > generates a real proof, settles on Sepolia, and yields a discoverable note
+[2026-08-23T04:09:45.133Z] WARN: Insufficient transaction data: found 9 V3 transactions with tips in 3 blocks (block range: 13902907-13902909). Required: 10 transactions. Consider reducing minTxsNecessary or increasing maxBlocks.
+
+stdout | tests/integration/bz-sepolia-real-proof.test.ts > BackerZero real-proof lifecycle (Sepolia)
+[bz] pool address: 0x02967c66092142d39c6918d632694054224d1419fa65f591fb049b464ee856ce
+
+ ❯ tests/integration/bz-sepolia-real-proof.test.ts (1 test | 1 failed) 297724ms
+     × generates a real proof, settles on Sepolia, and yields a discoverable note 297505ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/integration/bz-sepolia-real-proof.test.ts > BackerZero real-proof lifecycle (Sepolia) > generates a real proof, settles on Sepolia, and yields a discoverable note
+ProvingServiceError: The node doesn't support storage proofs for blocks that are too far in the past
+ ❯ ProvingService.callOnce ../sdk/src/internal/proving-service.ts:249:13
+ ❯ ProvingService.callWithRetry ../sdk/src/internal/proving-service.ts:268:16
+ ❯ ProvingService.proveTransaction ../sdk/src/internal/proving-service.ts:290:20
+ ❯ RealProofScreeningProvider.prove ../sdk/src/internal/proving-service-provider.ts:121:20
+ ❯ RealProofScreeningProvider.prove tests/integration/bz-sepolia-harness.ts:141:19
+    139|     blockIdentifier?: BlockIdentifier,
+    140|   ): Promise<Proof> {
+    141|     const proof = await super.prove(invocation, blockIdentifier as nev…
+       |                   ^
+    142|     const depositor = this.depositorProvider();
+    143|     if (depositor === undefined) return proof;
+ ❯ PrivateTransfers.executeWithInvocation ../sdk/src/internal/private-transfers.ts:98:19
+ ❯ tests/integration/bz-sepolia-real-proof.test.ts:51:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  04:09:44
+   Duration  298.28s (transform 251ms, setup 18ms, import 449ms, tests 297.72s, environment 0ms)
+
+
+== done; evidence (if produced) is at /home/ubuntu/repos/backerzero-strk20/poc/compute-and-invoke/e2e/evidence/sepolia-real-proof.json ==
