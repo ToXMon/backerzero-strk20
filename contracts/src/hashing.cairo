@@ -16,12 +16,8 @@ pub impl BackerZeroHashingImpl of BackerZeroHashing {
         deadline: u64,
     ) -> u64 {
         let mut inputs: Array<felt252> = array![
-            HASH_DOMAIN_BACKERZERO_CAMPAIGN_V1,
-            chain_id,
-            helper.into(),
-            creator.into(),
-            goal.into(),
-            deadline.into(),
+            HASH_DOMAIN_BACKERZERO_CAMPAIGN_V1, chain_id, helper.into(), creator.into(),
+            goal.into(), deadline.into(),
         ];
         let felt = poseidon_hash_span(inputs.span());
         let felt_u256: u256 = felt.into();
@@ -34,16 +30,10 @@ pub impl BackerZeroHashingImpl of BackerZeroHashing {
     }
 
     fn compute_receipt_commitment(
-        chain_id: felt252,
-        helper: ContractAddress,
-        campaign_id: u64,
-        receipt_secret: felt252,
+        chain_id: felt252, helper: ContractAddress, campaign_id: u64, receipt_secret: felt252,
     ) -> felt252 {
         let mut inputs: Array<felt252> = array![
-            HASH_DOMAIN_BACKERZERO_RECEIPT_V1,
-            chain_id,
-            helper.into(),
-            campaign_id.into(),
+            HASH_DOMAIN_BACKERZERO_RECEIPT_V1, chain_id, helper.into(), campaign_id.into(),
             receipt_secret,
         ];
         poseidon_hash_span(inputs.span())
@@ -62,32 +52,18 @@ pub impl BackerZeroHashingImpl of BackerZeroHashing {
         seq_nonce: felt252,
     ) -> felt252 {
         let mut inputs: Array<felt252> = array![
-            HASH_DOMAIN_BACKERZERO_REFUND_ID_V1,
-            chain_id,
-            helper.into(),
-            campaign_id.into(),
-            token.into(),
-            amount.into(),
-            destination.into(),
-            receipt_secret,
-            identity_binding,
-            context,
-            seq_nonce,
+            HASH_DOMAIN_BACKERZERO_REFUND_ID_V1, chain_id, helper.into(), campaign_id.into(),
+            token.into(), amount.into(), destination.into(), receipt_secret, identity_binding,
+            context, seq_nonce,
         ];
         poseidon_hash_span(inputs.span())
     }
 
     fn compute_creator_commitment(
-        chain_id: felt252,
-        helper: ContractAddress,
-        campaign_id: u64,
-        creator_secret: felt252,
+        chain_id: felt252, helper: ContractAddress, campaign_id: u64, creator_secret: felt252,
     ) -> felt252 {
         let mut inputs: Array<felt252> = array![
-            HASH_DOMAIN_BACKERZERO_CLAIM_AUTH_V1,
-            chain_id,
-            helper.into(),
-            campaign_id.into(),
+            HASH_DOMAIN_BACKERZERO_CLAIM_AUTH_V1, chain_id, helper.into(), campaign_id.into(),
             creator_secret,
         ];
         poseidon_hash_span(inputs.span())

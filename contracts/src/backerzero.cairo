@@ -1,15 +1,13 @@
 #[starknet::contract]
 pub mod BackerZero {
     use core::num::traits::{CheckedAdd, CheckedSub};
-    use starknet::{
-        ContractAddress, get_block_timestamp, get_caller_address, get_contract_address,
-        get_tx_info,
-    };
     use starknet::storage::{
         Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
         StoragePointerWriteAccess,
     };
-
+    use starknet::{
+        ContractAddress, get_block_timestamp, get_caller_address, get_contract_address, get_tx_info,
+    };
     use super::super::hashing::BackerZeroHashing;
     use super::super::interfaces::{IBackerZero, IERC20Dispatcher, IERC20DispatcherTrait};
     use super::super::types::{
@@ -76,10 +74,7 @@ pub mod BackerZero {
     #[abi(embed_v0)]
     impl IBackerZeroImpl of IBackerZero<ContractState> {
         fn create_campaign(
-            ref self: ContractState,
-            goal: u128,
-            deadline: u64,
-            creator_claim_commitment: felt252,
+            ref self: ContractState, goal: u128, deadline: u64, creator_claim_commitment: felt252,
         ) -> u64 {
             assert(goal > 0, 'ZERO_GOAL');
             assert(deadline > get_block_timestamp(), 'DEADLINE_NOT_FUTURE');
@@ -186,7 +181,10 @@ pub mod BackerZero {
             let existing = self.contributions.read((op.campaign_id, op.receipt_commitment));
             assert(existing.amount == 0, 'RECEIPT_EXISTS');
 
-            let new_liability = self.total_escrow.read().checked_add(op.amount)
+            let new_liability = self
+                .total_escrow
+                .read()
+                .checked_add(op.amount)
                 .expect('ESCROW_OVERFLOW');
 
             let helper_balance = IERC20Dispatcher { contract_address: self.token.read() }
@@ -203,16 +201,25 @@ pub mod BackerZero {
                 .contributions
                 .write(
                     (op.campaign_id, op.receipt_commitment),
-                    Contribution { amount: op.amount, refunded: false, refund_id: op.contribution_auth },
+                    Contribution {
+                        amount: op.amount, refunded: false, refund_id: op.contribution_auth,
+                    },
                 );
             self.total_escrow.write(new_liability);
 
-            self.emit(Backed { campaign_id: op.campaign_id, amount: op.amount, raised: campaign.raised });
+            self
+                .emit(
+                    Backed {
+                        campaign_id: op.campaign_id, amount: op.amount, raised: campaign.raised,
+                    },
+                );
 
             array![].span()
         }
 
-        fn claim_funding(ref self: ContractState, op: ClaimFundingOperation) -> Span<OpenNoteDeposit> {
+        fn claim_funding(
+            ref self: ContractState, op: ClaimFundingOperation,
+        ) -> Span<OpenNoteDeposit> {
             let mut campaign = self.campaigns.read(op.campaign_id);
             assert(campaign.creator.into() != 0, 'CAMPAIGN_NOT_FOUND');
             assert(get_block_timestamp() >= campaign.deadline, 'NOT_FINISHED');
@@ -245,7 +252,9 @@ pub mod BackerZero {
             array![OpenNoteDeposit { note_id: op.note_id, token: self.token.read(), amount }].span()
         }
 
-        fn claim_refund(ref self: ContractState, op: ClaimRefundOperation) -> Span<OpenNoteDeposit> {
+        fn claim_refund(
+            ref self: ContractState, op: ClaimRefundOperation,
+        ) -> Span<OpenNoteDeposit> {
             let mut campaign = self.campaigns.read(op.campaign_id);
             assert(campaign.creator.into() != 0, 'CAMPAIGN_NOT_FOUND');
             assert(get_block_timestamp() >= campaign.deadline, 'NOT_FINISHED');
@@ -281,12 +290,18 @@ pub mod BackerZero {
             contribution.refunded = true;
             self.contributions.write((op.campaign_id, receipt_commitment), contribution);
 
-            let new_refunded = campaign.refunded_total.checked_add(op.amount)
+            let new_refunded = campaign
+                .refunded_total
+                .checked_add(op.amount)
                 .expect('REFUND_TOTAL_OVERFLOW');
             campaign.refunded_total = new_refunded;
             self.campaigns.write(op.campaign_id, campaign);
 
-            let new_total = self.total_escrow.read().checked_sub(op.amount).expect('ESCROW_UNDERFLOW');
+            let new_total = self
+                .total_escrow
+                .read()
+                .checked_sub(op.amount)
+                .expect('ESCROW_UNDERFLOW');
             self.total_escrow.write(new_total);
 
             let approved = IERC20Dispatcher { contract_address: self.token.read() }
@@ -295,7 +310,11 @@ pub mod BackerZero {
 
             self.emit(Refunded { campaign_id: op.campaign_id, amount: op.amount });
 
-            array![OpenNoteDeposit { note_id: op.note_id, token: self.token.read(), amount: op.amount }]
+            array![
+                OpenNoteDeposit {
+                    note_id: op.note_id, token: self.token.read(), amount: op.amount,
+                },
+            ]
                 .span()
         }
     }

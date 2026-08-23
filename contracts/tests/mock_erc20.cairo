@@ -14,11 +14,11 @@ pub trait IMockERC20<TContractState> {
 
 #[starknet::contract]
 mod MockERC20 {
-    use starknet::{ContractAddress, get_caller_address};
     use starknet::storage::{
         Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
         StoragePointerWriteAccess,
     };
+    use starknet::{ContractAddress, get_caller_address};
 
     #[storage]
     struct Storage {
@@ -38,7 +38,9 @@ mod MockERC20 {
             self.balances.read(account)
         }
 
-        fn allowance(self: @ContractState, owner: ContractAddress, spender: ContractAddress) -> u256 {
+        fn allowance(
+            self: @ContractState, owner: ContractAddress, spender: ContractAddress,
+        ) -> u256 {
             self.allowances.read((owner, spender))
         }
 

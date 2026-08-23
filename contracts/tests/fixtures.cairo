@@ -1,8 +1,7 @@
 use starknet::ContractAddress;
 
 pub const FIXTURE_CHAIN_ID: felt252 = 'SN_LOCAL';
-pub const FIXTURE_HELPER_ADDR: felt252 =
-    0x1234567890abcdef1234567890abcdef1234567890abcdef;
+pub const FIXTURE_HELPER_ADDR: felt252 = 0x1234567890abcdef1234567890abcdef1234567890abcdef;
 pub const FIXTURE_CREATOR_ADDR: felt252 = 0x222;
 pub const FIXTURE_TOKEN_ADDR: felt252 = 0xabcdef;
 pub const FIXTURE_DESTINATION_ADDR: felt252 = 0x333;

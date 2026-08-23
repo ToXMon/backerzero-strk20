@@ -1,15 +1,13 @@
-use snforge_std::{
-    ContractClassTrait, DeclareResultTrait, declare, start_cheat_block_timestamp,
-    start_cheat_caller_address, start_cheat_chain_id,
-};
-use starknet::ContractAddress;
-
 use backerzero::hashing::BackerZeroHashing;
 use backerzero::interfaces::{IBackerZeroDispatcher, IBackerZeroDispatcherTrait};
 use backerzero::types::{
     BackOperation, BackerZeroOperation, CampaignStatus, ClaimFundingOperation, ClaimRefundOperation,
 };
-
+use snforge_std::{
+    ContractClassTrait, DeclareResultTrait, declare, start_cheat_block_timestamp,
+    start_cheat_caller_address, start_cheat_chain_id,
+};
+use starknet::ContractAddress;
 use super::mock_erc20::{IMockERC20Dispatcher, IMockERC20DispatcherTrait};
 
 const CHAIN_ID: felt252 = 'SN_LOCAL';
@@ -103,13 +101,7 @@ fn back_operation(
 
     start_cheat_caller_address(helper.contract_address, pool);
     let op = BackerZeroOperation::Back(
-        BackOperation {
-            campaign_id,
-            token,
-            amount,
-            receipt_commitment,
-            contribution_auth,
-        },
+        BackOperation { campaign_id, token, amount, receipt_commitment, contribution_auth },
     );
     let outputs = helper.privacy_invoke(op);
     assert(outputs.len() == 0, 'BACK_NOT_EMPTY');
@@ -299,16 +291,7 @@ fn test_back_after_deadline_fails() {
 
     start_cheat_block_timestamp(helper.contract_address, BASE_TIME + 2000);
     back_operation(
-        helper,
-        pool,
-        token.contract_address,
-        campaign_id,
-        500,
-        0x777,
-        backer,
-        0x444,
-        0x555,
-        0,
+        helper, pool, token.contract_address, campaign_id, 500, 0x777, backer, 0x444, 0x555, 0,
     );
 }
 
@@ -352,16 +335,7 @@ fn test_back_zero_amount_fails() {
     token.mint(helper.contract_address, 1);
 
     back_operation(
-        helper,
-        pool,
-        token.contract_address,
-        campaign_id,
-        0,
-        0x777,
-        backer,
-        0x444,
-        0x555,
-        0,
+        helper, pool, token.contract_address, campaign_id, 0, 0x777, backer, 0x444, 0x555, 0,
     );
 }
 
@@ -377,16 +351,7 @@ fn test_back_not_funded_fails() {
 
     // No tokens minted to helper.
     back_operation(
-        helper,
-        pool,
-        token.contract_address,
-        campaign_id,
-        500,
-        0x777,
-        backer,
-        0x444,
-        0x555,
-        0,
+        helper, pool, token.contract_address, campaign_id, 500, 0x777, backer, 0x444, 0x555, 0,
     );
 }
 
@@ -403,16 +368,7 @@ fn test_claim_funding() {
     let goal = 1000_u128;
     token.mint(helper.contract_address, goal.into());
     back_operation(
-        helper,
-        pool,
-        token.contract_address,
-        campaign_id,
-        goal,
-        0x777,
-        backer,
-        0x444,
-        0x555,
-        0,
+        helper, pool, token.contract_address, campaign_id, goal, 0x777, backer, 0x444, 0x555, 0,
     );
 
     start_cheat_block_timestamp(helper.contract_address, BASE_TIME + 1000);
@@ -494,11 +450,7 @@ fn test_claim_funding_failed_campaign_fails() {
     start_cheat_caller_address(helper.contract_address, pool);
     let op = BackerZeroOperation::ClaimFunding(
         ClaimFundingOperation {
-            campaign_id,
-            token: token.contract_address,
-            amount: 500,
-            note_id: 0x999,
-            creator_secret,
+            campaign_id, token: token.contract_address, amount: 500, note_id: 0x999, creator_secret,
         },
     );
     helper.privacy_invoke(op);
