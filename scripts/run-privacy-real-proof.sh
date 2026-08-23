@@ -53,6 +53,15 @@ BZ_PROVING_BLOCK_LAG="${BZ_PROVING_BLOCK_LAG:-11}"
 BZ_PROVE_TIMEOUT_MS="${BZ_PROVE_TIMEOUT_MS:-7200000}"
 BZ_EVIDENCE_FILE="${BZ_EVIDENCE_FILE:-$ROOT/poc/compute-and-invoke/e2e/evidence/sepolia-real-proof.json}"
 
+# Clean up any stale proxy / prover from previous runs so the script fails fast
+# instead of starting a broken proxy on an occupied port.
+pkill -f 'rpc-capability-proxy.py' >/dev/null 2>&1 || true
+docker rm -f "$PROVER_NAME" >/dev/null 2>&1 || true
+for _ in $(seq 1 30); do
+  if ! curl -sf "http://127.0.0.1:$PROXY_PORT" >/dev/null 2>&1; then break; fi
+  sleep 0.2
+done
+
 say "starting RPC capability proxy on :$PROXY_PORT"
 python3 "$ROOT/scripts/rpc-capability-proxy.py" \
   --port "$PROXY_PORT" \
@@ -61,11 +70,25 @@ python3 "$ROOT/scripts/rpc-capability-proxy.py" \
 PROXY_PID=$!
 trap 'docker rm -f "$PROVER_NAME" >/dev/null 2>&1 || true; kill "$PROXY_PID" >/dev/null 2>&1 || true' EXIT
 
+for _ in $(seq 1 60); do
+  if curl -sf -X POST "http://127.0.0.1:$PROXY_PORT" \
+      -H 'content-type: application/json' \
+      -d '{"jsonrpc":"2.0","id":1,"method":"starknet_specVersion"}' >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.5
+done
+if ! curl -sf -X POST "http://127.0.0.1:$PROXY_PORT" \
+    -H 'content-type: application/json' \
+    -d '{"jsonrpc":"2.0","id":1,"method":"starknet_specVersion"}' >/dev/null 2>&1; then
+  fail "RPC capability proxy did not start on :$PROXY_PORT (port in use or proxy crashed)"
+fi
+
 say "pulling/starting prover: $PROVER_IMAGE"
 docker pull "$PROVER_IMAGE"
 docker rm -f "$PROVER_NAME" >/dev/null 2>&1 || true
 docker run -d --name "$PROVER_NAME" --network host \
-  --platform linux/arm64 \
+  --platform "linux/${PROVER_PLATFORM:-arm64}" \
   -e RPC_URL="http://127.0.0.1:$PROXY_PORT" \
   -e CHAIN_ID=SN_SEPOLIA \
   -e PROVER_PORT=3000 \

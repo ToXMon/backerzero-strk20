@@ -300,12 +300,22 @@ A fresh pool instance was deployed at
   contains AMD-only SSE4a instructions (`EXTRQ`/`INSERTQ`). The same failure
   occurs with `QEMU_CPU=Opteron_G5,vendor=AuthenticAMD`.
 - `linux/arm64` image: starts under `qemu-user` emulation and runs the proving
-  path, but a deposit proof takes approximately **5 minutes** on this VM.
+  path. A reproduction run reached `Starting transaction proving` for Sepolia
+  block `13902905` and transaction
+  `0x6415f2ca0f42e8d33bae1bbbfea3b01918cd4bca3d17aa470415e910584ed80`, but the
+  proof did not return. After approximately **4 minutes 35 seconds** the prover
+  failed with:
+  ```text
+  prove_transaction failed: RunnerError(ProofProvider(UpstreamRpcError {
+    code: 42,
+    message: "The node doesn't support storage proofs for blocks that are too far in the past"
+  }))
+  ```
+  surfaced as `ProvingServiceError: The node doesn't support storage proofs for blocks that are too far in the past`.
 - The longest-retention public storage-proof window found is approximately
-  **16 blocks** (Cartridge/Alchemy), which corresponds to only **25–30 seconds**
-  of Sepolia history at observed block rates. Because the ARM64 emulated prover
-  cannot finish within that window, `starknet_getStorageProof` for the proving
-  block ages out before the proof completes.
+  **16 blocks** (Cartridge/Alchemy). Because the ARM64 emulated prover cannot
+  finish within that window, `starknet_getStorageProof` for the proving block
+  ages out before the proof completes.
 
 This is an execution-environment mismatch, not a protocol incompatibility: a
 native ARM64 or x86-64 prover, or a hosted proving service / node with longer

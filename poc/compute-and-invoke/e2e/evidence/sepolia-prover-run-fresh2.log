@@ -1,0 +1,17 @@
+[2m2026-08-23T04:09:33.723475Z[0m [32m INFO[0m [2mstarknet_transaction_prover::server::config[0m[2m:[0m CLI override: rpc_node_url: <unset> -> http://127.0.0.1:8547
+[2m2026-08-23T04:09:33.725325Z[0m [32m INFO[0m [2mstarknet_transaction_prover::server::config[0m[2m:[0m CLI override: chain_id: SN_MAIN -> SN_SEPOLIA
+[2m2026-08-23T04:09:33.728339Z[0m [32m INFO[0m [2mstarknet_transaction_prover[0m[2m:[0m Starting Starknet transaction prover. [3mversion[0m[2m=[0m"0.19.0-rc.2" [3mgit_sha[0m[2m=[0m"unknown" [3mchain_id[0m[2m=[0mSN_SEPOLIA [3mrpc_node_host[0m[2m=[0mhttp://127.0.0.1:8547 [3mvalidate_zero_fee_fields[0m[2m=[0mtrue [3mblocking_check_enabled[0m[2m=[0mfalse [3mblocking_check_fail_open[0m[2m=[0mfalse [3mohttp_enabled[0m[2m=[0mfalse
+[2m2026-08-23T04:09:35.994317Z[0m [32m INFO[0m [1mprepare_privacy_recursiveprover_precomputes[0m[2m:[0m [2mprivacy_prove[0m[2m:[0m Prepare the twiddles
+[2m2026-08-23T04:09:36.124472Z[0m [32m INFO[0m [1mprepare_privacy_recursiveprover_precomputes[0m[2m:[0m [2mprivacy_prove[0m[2m:[0m Prepare the cairo prover preprocessed trace and tree
+[2m2026-08-23T04:09:38.719324Z[0m [32m INFO[0m [1mprepare_privacy_recursiveprover_precomputes[0m[2m:[0m [2mprivacy_prove[0m[2m:[0m Prepare the circuit prover preprocessed trace and tree
+[2m2026-08-23T04:09:42.687874Z[0m [32m INFO[0m [2mstarknet_transaction_prover[0m[2m:[0m JSON-RPC proving server is running. [3mlocal_address[0m[2m=[0m0.0.0.0:3000 [3mscheme[0m[2m=[0m"http" [3mmax_concurrent_requests[0m[2m=[0m2 [3mmax_connections[0m[2m=[0m10 [3mcors_mode[0m[2m=[0m"disabled" [3mcors_allow_origin[0m[2m=[0m[] [3mohttp_enabled[0m[2m=[0mfalse
+[2m2026-08-23T04:10:07.748520Z[0m [32m INFO[0m [1mprove_transaction[0m[1m{[0m[3mblock_id[0m[2m=[0mNumber(BlockNumber(13902905)) [3mtx_hash[0m[2m=[0m0x6415f2ca0f42e8d33bae1bbbfea3b01918cd4bca3d17aa470415e910584ed80[1m}[0m[2m:[0m [2mstarknet_transaction_prover::running::runner[0m[2m:[0m Starting transaction proving
+[2m2026-08-23T04:10:52.977348Z[0m [32m INFO[0m [2mcairo_vm::vm::runners::cairo_runner[0m[2m:[0m Relocating memory.
+[2m2026-08-23T04:10:52.977814Z[0m [32m INFO[0m [2mcairo_vm::vm::runners::cairo_runner[0m[2m:[0m Computing effective sizes of segments.
+[2m2026-08-23T04:13:57.134536Z[0m [32m INFO[0m [2mcairo_vm::vm::runners::cairo_runner[0m[2m:[0m Relocating memory.
+[2m2026-08-23T04:13:57.134726Z[0m [32m INFO[0m [2mcairo_vm::vm::runners::cairo_runner[0m[2m:[0m Computing effective sizes of segments.
+[2m2026-08-23T04:14:29.692440Z[0m [32m INFO[0m [2mcairo_vm::vm::runners::cairo_runner[0m[2m:[0m Relocating memory.
+[2m2026-08-23T04:14:29.692509Z[0m [32m INFO[0m [2mcairo_vm::vm::runners::cairo_runner[0m[2m:[0m Computing effective sizes of segments.
+[2m2026-08-23T04:14:29.695568Z[0m [32m INFO[0m [2mcairo_vm::vm::runners::cairo_runner[0m[2m:[0m Relocating memory.
+[2m2026-08-23T04:14:29.695603Z[0m [32m INFO[0m [2mcairo_vm::vm::runners::cairo_runner[0m[2m:[0m Computing effective sizes of segments.
+[2m2026-08-23T04:14:42.119584Z[0m [33m WARN[0m [2mstarknet_transaction_prover::server::rpc_impl[0m[2m:[0m prove_transaction failed: RunnerError(ProofProvider(UpstreamRpcError { code: 42, message: "The node doesn't support storage proofs for blocks that are too far in the past", data: None }))
