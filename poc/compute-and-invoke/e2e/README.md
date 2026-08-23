@@ -3,8 +3,9 @@
 These tests run inside the pinned upstream checkout of
 `starkware-libs/starknet-privacy` at commit
 `b59d8a141e49a9d940fb14dfe935cbecb8202814`; they import that repository's e2e
-harness, so they are installed into `e2e/tests/devnet/` by
-`scripts/run-privacy-real-proof.sh` rather than executed from this directory.
+harness, so they are installed into `e2e/tests/devnet/` (Part D) and
+`e2e/tests/integration/` (Sepolia Part C) by `scripts/run-privacy-real-proof.sh`
+rather than executed from this directory.
 
 | File | Part | Purpose |
 | --- | --- | --- |
@@ -24,10 +25,10 @@ discovery service (`scripts/run-privacy-e2e.sh`), plus
 `(cd e2e/contracts/test-token && scarb build)` in that checkout for the Part D
 contracts. Docker is required for the prover.
 
-All accounts are disposable devnet accounts. No private key, viewing key, or
-receipt secret is committed here or written to `evidence/`.
+All accounts are disposable devnet/Sepolia test accounts. No private key, viewing
+key, or receipt secret is committed here or written to `evidence/`.
 
-## Sepolia real-proof attempt (Prompt 4 Part C, hosted)
+## Sepolia real-proof success (Prompt 4 Part C, hosted)
 
 Files:
 
@@ -40,34 +41,43 @@ Files:
   indexer note discovery.
 
 `scripts/run-privacy-real-proof.sh` starts the RPC capability proxy and the
-official prover, then runs the Sepolia test in the pinned upstream checkout.
+prover (or a local source-built binary when the official `linux/amd64` image
+SIGILLs on the host), then runs the Sepolia test in the pinned upstream checkout.
 
-Current status: the prover starts and reaches `starknet_proveTransaction`, but
-**real proof generation cannot complete in this VM**:
+Latest successful real-proof evidence:
 
-- `linux/amd64` image: SIGILL (exit 132) — AMD-only SSE4a instructions.
-- `linux/arm64` image: runs under `qemu-user` but a deposit proof takes ~5
-  minutes, longer than the ~16-block public storage-proof window on every
-  reachable hosted Sepolia RPC.
+| Field | Value |
+| --- | --- |
+| Pool class | `0x52107fadffab71bdcbb6b2ccb68ba3e1b5558d94036538053e159d3076ad633` |
+| Pool instance | `0x02967c66092142d39c6918d632694054224d1419fa65f591fb049b464ee856ce` |
+| Pool deployment tx | `0x04635f2c6dd6de27aadd61426bce328dcabff27751f53cdedd5de0e246f72d96` |
+| STRK approve tx | `0x119d289a9d654dc3617aed5fbcd8bc0132af4e7e790f47884a88665f4310d71` |
+| Proving block | `13920374` |
+| Proving time | `26794 ms` |
+| Proof facts | `9` |
+| Proof data bytes | `305732` |
+| Settlement tx | `0x57ba2ec108d116ae5f8851d95ae1b840526f85947ec4bb739acbc7c9dfc1098` |
+| Notes discovered | `1` |
+
+The settlement receipt reports `execution_status: SUCCEEDED` and
+`finality_status: ACCEPTED_ON_L2` on Sepolia block `13920409`.
 
 ## Evidence
 
-- `evidence/real-proof-prover.log` — official prover startup and the
-  `starknet_proveTransaction` failure: `code 42, "Devnet doesn't support storage
-  proofs"`. The prover itself reached the proving stage and returned a clean
-  upstream RPC error, so the failure is the RPC node's capability, not the prover.
-- `evidence/real-proof-sdk-failure.log` — the same failure surfaced through
-  `ProvingService.proveTransaction` in the SDK.
+- `evidence/sepolia-real-proof.json` — latest successful Part C run evidence.
 - `evidence/part-d-results.json` — per-test outcome of the Part D positive path
   and the five negative tests.
+- `evidence/sepolia-prover-*.log` and `evidence/sepolia-real-proof-*.log` —
+  prior run logs (kept for comparison; may include failed attempts).
 
 ## Part D result caveat
 
 Part D runs on the upstream devnet harness, whose proof provider is
-`ScreeningCallMockProofProvider` (a real proof is unobtainable on devnet, see
-above). The negative tests therefore demonstrate the **pool contract's** binding
-and nullifier logic — tampering the public outside-execution calldata after
-authorization fails with `INVALID_PROOF_MSG`, and re-executing a consumed
-authorization fails with `NON_ZERO_VALUE` — while the soundness of the proof
-itself is *not* exercised. Treat Part D as conformance and binding evidence,
-not as cryptographic verification.
+`ScreeningCallMockProofProvider` (a real proof is unobtainable on devnet because
+`starknet-devnet` does not implement `starknet_getStorageProof`). The negative
+tests therefore demonstrate the **pool contract's** binding and nullifier logic
+— tampering the public outside-execution calldata after authorization fails with
+`INVALID_PROOF_MSG`, and re-executing a consumed authorization fails with
+`NON_ZERO_VALUE` — while the soundness of the proof itself is exercised by the
+separate Sepolia real-proof run. Treat Part D as conformance and binding
+evidence plus the real-proof run as cryptographic verification.

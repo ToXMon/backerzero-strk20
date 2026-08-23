@@ -1,0 +1,14 @@
+{
+  "rpcUrl": "http://127.0.0.1:8547",
+  "txRpcUrl": "https://starknet-sepolia-rpc.publicnode.com",
+  "poolAddress": "0x02967c66092142d39c6918d632694054224d1419fa65f591fb049b464ee856ce",
+  "approveTx": "0x119d289a9d654dc3617aed5fbcd8bc0132af4e7e790f47884a88665f4310d71",
+  "provingBlockId": 13920374,
+  "provingMs": 26794,
+  "proofFactsLength": 9,
+  "proofDataLength": 305732,
+  "callContract": "0x2967c66092142d39c6918d632694054224d1419fa65f591fb049b464ee856ce",
+  "callEntrypoint": "apply_actions",
+  "settlementTx": "0x57ba2ec108d116ae5f8851d95ae1b840526f85947ec4bb739acbc7c9dfc1098",
+  "discoveredNotes": 1
+}

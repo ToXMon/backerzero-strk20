@@ -38,9 +38,10 @@ PROVER_IMAGE="${PROVER_IMAGE:-$PROVER_ARM64}"
 if [[ "${PROVER_PLATFORM:-arm64}" == "amd64" ]]; then PROVER_IMAGE="$PROVER_AMD64"; fi
 
 # Default Sepolia endpoints. The proxy lets the prover use PublicNode for full
-# v0.10 block headers and Cartridge/Alchemy for storage proofs.
+# v0.10 block headers and Cartridge/Alchemy/ZAN for storage proofs.
 BZ_RPC_URL="${BZ_RPC_URL:-https://starknet-sepolia-rpc.publicnode.com}"
 BZ_TX_RPC_URL="${BZ_TX_RPC_URL:-https://api.cartridge.gg/x/starknet/sepolia}"
+BZ_PROOF_URL="${BZ_PROOF_URL:-$BZ_TX_RPC_URL}"
 BZ_WS_URL="${BZ_WS_URL:-wss://starknet-sepolia-rpc.publicnode.com}"
 BZ_ACCOUNTS_FILE="${BZ_ACCOUNTS_FILE:-$HOME/.bz-sepolia/accounts.json}"
 
@@ -63,10 +64,9 @@ for _ in $(seq 1 30); do
 done
 
 say "starting RPC capability proxy on :$PROXY_PORT"
-python3 "$ROOT/scripts/rpc-capability-proxy.py" \
-  --port "$PROXY_PORT" \
-  --header-url "$BZ_RPC_URL" \
-  --proof-url "$BZ_TX_RPC_URL" &
+PROXY_ARGS=(--port "$PROXY_PORT" --header-url "$BZ_RPC_URL" --proof-url "$BZ_PROOF_URL")
+if [[ "${BZ_PROXY_VERBOSE:-}" == "1" ]]; then PROXY_ARGS+=(--verbose); fi
+python3 "$ROOT/scripts/rpc-capability-proxy.py" "${PROXY_ARGS[@]}" &
 PROXY_PID=$!
 trap 'docker rm -f "$PROVER_NAME" >/dev/null 2>&1 || true; kill "$PROXY_PID" >/dev/null 2>&1 || true' EXIT
 
@@ -84,16 +84,21 @@ if ! curl -sf -X POST "http://127.0.0.1:$PROXY_PORT" \
   fail "RPC capability proxy did not start on :$PROXY_PORT (port in use or proxy crashed)"
 fi
 
-say "pulling/starting prover: $PROVER_IMAGE"
-docker pull "$PROVER_IMAGE"
-docker rm -f "$PROVER_NAME" >/dev/null 2>&1 || true
-docker run -d --name "$PROVER_NAME" --network host \
-  --platform "linux/${PROVER_PLATFORM:-arm64}" \
-  -e RPC_URL="http://127.0.0.1:$PROXY_PORT" \
-  -e CHAIN_ID=SN_SEPOLIA \
-  -e PROVER_PORT=3000 \
-  -e RUST_LOG=info \
-  "$PROVER_IMAGE" >/dev/null
+if [[ -n "${BZ_PROVER_BINARY:-}" ]]; then
+  say "starting local prover binary: $BZ_PROVER_BINARY"
+  (RPC_URL="http://127.0.0.1:$PROXY_PORT" CHAIN_ID=SN_SEPOLIA PROVER_PORT=3000 RUST_LOG=info "$BZ_PROVER_BINARY" >/tmp/bz-prover.log 2>&1 &) 
+else
+  say "pulling/starting prover: $PROVER_IMAGE"
+  docker pull "$PROVER_IMAGE"
+  docker rm -f "$PROVER_NAME" >/dev/null 2>&1 || true
+  docker run -d --name "$PROVER_NAME" --network host \
+    --platform "linux/${PROVER_PLATFORM:-arm64}" \
+    -e RPC_URL="http://127.0.0.1:$PROXY_PORT" \
+    -e CHAIN_ID=SN_SEPOLIA \
+    -e PROVER_PORT=3000 \
+    -e RUST_LOG=info \
+    "$PROVER_IMAGE" >/dev/null
+fi
 
 say "waiting for prover readiness on $PROVER_URL"
 for _ in $(seq 1 120); do

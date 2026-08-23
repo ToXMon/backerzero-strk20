@@ -59,7 +59,32 @@ describe("BackerZero real-proof lifecycle (Sepolia)", () => {
       .execute({ provingBlockId });
     const provingMs = Date.now() - startedAt;
 
-    const receipt = await env.executeOutside(callAndProof);
+    const partialEvidence = {
+      rpcUrl: process.env.BZ_RPC_URL,
+      txRpcUrl: process.env.BZ_TX_RPC_URL,
+      poolAddress: env.poolAddress,
+      approveTx: approve.transaction_hash,
+      provingBlockId,
+      provingMs,
+      proofFactsLength: callAndProof.proof.proofFacts.length,
+      proofFactsSample: callAndProof.proof.proofFacts.slice(0, 3),
+      proofDataLength: callAndProof.proof.data.length,
+      callContract: callAndProof.call.contractAddress,
+      callEntrypoint: callAndProof.call.entrypoint,
+    };
+    console.log("[bz-real-proof] generated proof:", JSON.stringify(partialEvidence));
+
+    let receipt;
+    try {
+      receipt = await env.executeOutside(callAndProof);
+    } catch (executeErr) {
+      console.log("[bz-real-proof] executeOutside failed:", executeErr);
+      writeFileSync(
+        EVIDENCE_FILE + ".execute-fail.json",
+        JSON.stringify({ ...partialEvidence, error: String(executeErr) }, null, 2),
+      );
+      throw executeErr;
+    }
 
     const evidence = {
       rpcUrl: process.env.BZ_RPC_URL,

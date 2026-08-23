@@ -44,9 +44,13 @@ class Handler(BaseHTTPRequestHandler):
     header_url = ""
     proof_url = ""
     verbose = False
+    storage_proof_cache: dict[bytes, bytes] = {}
 
     def log_message(self, *args):  # noqa: D102 - silence default access log
         pass
+
+    def _cache_key(self, body: bytes) -> bytes:
+        return body
 
     def do_POST(self):  # noqa: N802
         length = int(self.headers.get("content-length", 0))
@@ -60,25 +64,52 @@ class Handler(BaseHTTPRequestHandler):
             if isinstance(parsed, list)
             else [parsed.get("method")]
         )
-        target = (
-            self.proof_url
-            if any(method in PROOF_METHODS for method in methods)
-            else self.header_url
-        )
+        is_proof = any(method in PROOF_METHODS for method in methods)
+        target = self.proof_url if is_proof else self.header_url
+
         if self.verbose:
             print(f"[proxy] {methods} -> {target}", file=sys.stderr, flush=True)
-        try:
-            result = forward(target, body)
-            status = 200
-        except Exception as error:  # upstream failure -> JSON-RPC error
-            result = json.dumps(
-                {
-                    "jsonrpc": "2.0",
-                    "id": None,
-                    "error": {"code": -32603, "message": f"proxy: {error}"},
-                }
-            ).encode()
-            status = 200
+            for method in methods:
+                if method in PROOF_METHODS:
+                    print(f"[proxy] storage-proof body: {body.decode()[:2000]}", file=sys.stderr, flush=True)
+
+        # Serve storage-proof responses from cache when we already paid to
+        # fetch them while the proving block was still within the upstream window.
+        if is_proof and body in Handler.storage_proof_cache:
+            result = Handler.storage_proof_cache[body]
+            if self.verbose:
+                print("[proxy] storage-proof cache HIT", file=sys.stderr, flush=True)
+        else:
+            try:
+                result = forward(target, body)
+                if is_proof:
+                    Handler.storage_proof_cache[body] = result
+            except Exception as error:  # upstream failure -> JSON-RPC error
+                result = json.dumps(
+                    {
+                        "jsonrpc": "2.0",
+                        "id": None,
+                        "error": {"code": -32603, "message": f"proxy: {error}"},
+                    }
+                ).encode()
+
+        # If upstream now rejects the proving block as too old, fall back to a
+        # previously cached response for the same proof request.
+        if is_proof:
+            try:
+                parsed_result = json.loads(result)
+            except json.JSONDecodeError:
+                parsed_result = {}
+            if (
+                isinstance(parsed_result, dict)
+                and parsed_result.get("error", {}).get("code") == 42
+                and body in Handler.storage_proof_cache
+            ):
+                if self.verbose:
+                    print("[proxy] upstream too-old; using cached storage proof", file=sys.stderr, flush=True)
+                result = Handler.storage_proof_cache[body]
+
+        status = 200
         self.send_response(status)
         self.send_header("content-type", "application/json")
         self.send_header("content-length", str(len(result)))

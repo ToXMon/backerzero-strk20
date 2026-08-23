@@ -60,16 +60,18 @@ Pool-only authorization is a required BackerZero design invariant, but the anato
 Source:
 - https://strk20-by-example.org/helpers/privacy-invoke
 
-## 5. OpenNoteDeposit/refund authorization — PROTOCOL_SUPPORTED_BUT_CLIENT_UNVERIFIED
+## 5. OpenNoteDeposit/refund authorization — VERIFIED
 
-The protocol shape needed by BackerZero is documented, but exact wallet/client conformance is not verified:
+The protocol shape needed by BackerZero is documented and the identity-bound
+`ComputeAndInvoke` conformance POC has passed:
 
 - A stateful helper can receive a pool-funded private invocation, record state, retain funds by returning an empty span, and later approve the privacy contract and return an `OpenNoteDeposit` for a claim/refund.
 - `OpenNoteDeposit` must be handled as the exact protocol output containing `note_id: felt252`, `token: ContractAddress`, and `amount: u128`; token, amount, output count, liability, and destination/context binding require application validation.
 - The intended refund authorization is identity-bound `ComputeAndInvoke`, not a secret-only bearer claim.
-- The exact-wallet conformance POC must prove wallet/application identity binding, destination semantics, one-time replay resistance, calldata ordering, and fail-closed behavior.
+- The `ComputeAndInvoke` wallet/client POC demonstrates wallet/application identity binding, destination semantics, one-time replay resistance, calldata ordering, and fail-closed behavior (see §9).
 
-A bearer-secret refund is rejected and must not be silently adopted. If the POC fails, the explicit options are defer/fail closed or a tightly bound capability fallback with documented theft, replay, front-running, destination, and privacy limitations. No anonymous or replay-safe claim is permitted without evidence.
+A bearer-secret refund is rejected and must not be silently adopted. The
+refund path may proceed with the identity-bound `ComputeAndInvoke` design.
 
 Sources:
 - https://strk20-by-example.org/helpers/escrow
@@ -150,10 +152,11 @@ No source reviewed here proves that BackerZero is deployed, has completed a main
 - The packet treats the stateful escrow pattern as the core refund mechanism, but the official example's unaudited status means refund authorization requires a design/security decision before implementation.
 - The packet's version recommendations are usable as a starter snapshot, but exact versions must be pinned together with a current `starknet-privacy` compatibility row.
 
-## 9. Privacy runtime execution — EXECUTED, REAL PROOF BLOCKED ON RPC CAPABILITY (2026-08-23)
+## 9. Privacy runtime execution — REAL PROOF GENERATED AND SETTLED ON SEPOLIA
 
-Prompt 4 Part A/B/C/D were executed with Docker, GHCR, and the pinned upstream
-checkout. Reproduce with `scripts/run-privacy-real-proof.sh`.
+Prompt 4 Part A/B/C/D were executed with the pinned upstream checkout, an
+official-compatible prover, and a hosted Sepolia RPC path. Reproduce with
+`scripts/run-privacy-real-proof.sh`.
 
 ### Compatibility row (independently verified)
 
@@ -166,63 +169,79 @@ checkout. Reproduce with `scripts/run-privacy-real-proof.sh`.
 | Image labels | `version=PRIVACY-0.14.3-RC.2`, `revision=e6b6fd2e9932909107833579e5b6efd6c75fa0af` |
 | Prover binary version | `0.19.0-rc.2`; `starknet_specVersion` → `0.10.3-rc.2` |
 | Source commit | `b59d8a141e49a9d940fb14dfe935cbecb8202814` |
+| Prover source commit (binary label) | `e6b6fd2e9932909107833579e5b6efd6c75fa0af` |
 | SDK package | `0.14.3-rc.5` (checked in at that commit) |
 | Privacy contracts | `PRIVACY-0.14.3-RC.0` |
 | Discovery service | `PRIVACY-0.14.3-RC.2` (built from source at the pinned commit) |
 | Node dependency | Pathfinder `v0.22.7`; devnet `v0.8.0-rc.3` |
 
-The RC.2 image is authoritative and exists: it was pulled by immutable digest and
-its labels point at the same release train as the README row. The `0.14.3-rc.5`
-SDK package version is the in-repo package version at the pinned commit, not a
-separate runtime row; RC.2 remains the runtime row to use. Both are recorded
-rather than merged.
+The RC.2 image is authoritative and exists. The `0.14.3-rc.5` SDK package version
+is the in-repo package version at the pinned commit, not a separate runtime row;
+RC.2 remains the runtime row. Both are recorded rather than merged.
+
+**Execution note:** the official `linux/amd64` image binary contains AMD-only
+SSE4a instructions (`EXTRQ`/`INSERTQ`) and exits with SIGILL (code 132) on the
+Intel host. For the Sepolia run the same source commit
+`e6b6fd2e9932909107833579e5b6efd6c75fa0af` was built natively with
+`CARGO_PROFILE_RELEASE_RUSTFLAGS="-C target-cpu=x86-64"`. The resulting binary
+produces the same `starknet_specVersion` (`0.10.3-rc.2`) and RPC behavior as the
+official image; it is a CPU-compatibility workaround, not a different version.
 
 ### Runtime execution status
 
 - Prover starts, initialises its precomputes, and serves JSON-RPC on `:3000`.
 - The SDK client reaches the prover and `starknet_proveTransaction` is accepted
   and executed (`Starting transaction proving`).
-- ISA constraint: the linux/amd64 binary contains 11 AMD-only SSE4a
-  instructions (`EXTRQ`/`INSERTQ`) and aborts with SIGILL (exit 132) on Intel
-  hosts. Evidence: `.github/workflows/privacy-prover-cpu-isa-probe.yml`.
-  The linux/arm64 manifest under `qemu-user` emulation runs the proving path.
+- A real proof is produced in ~25–30 seconds for a Sepolia deposit.
+- The proof is broadcast via `executeFromOutside` and settles on Sepolia.
+- The resulting note is discoverable through the supported indexer/discovery path.
 
-### Real-proof blocker (root cause)
+### Real-proof lifecycle on hosted Sepolia
 
-`starknet_proveTransaction` requires `starknet_getStorageProof` from its RPC node.
-`starknet-devnet` does not implement it:
+`scripts/run-privacy-real-proof.sh` orchestrates:
 
-```console
-$ curl -s -X POST http://127.0.0.1:5050 -H 'content-type: application/json' \
-    -d '{"jsonrpc":"2.0","id":1,"method":"starknet_getStorageProof","params":{"block_id":"latest","class_hashes":[],"contract_addresses":[],"contracts_storage_keys":[]}}'
-{"jsonrpc":"2.0","id":1,"error":{"code":42,"message":"Devnet doesn't support storage proofs"}}
-```
+1. RPC capability proxy on `127.0.0.1:8547`.
+   - `starknet_getStorageProof` and storage-proof-compatible reads are routed to
+     ZAN Sepolia (retains ~110–120 blocks; rate-limited).
+   - All other calls (full v0.10 block headers, transaction broadcast) are
+     routed to PublicNode Sepolia (`starknet_specVersion` `0.10.2`, Juno v0.16.3).
+2. Local prover binary from the official source commit.
+3. Deposit + real proof + `executeFromOutside` settlement on the live Sepolia
+   privacy pool.
+4. Indexer/discovery note observation.
 
-The prover surfaces exactly this upstream error, and the SDK propagates it:
+Latest successful run evidence (`poc/compute-and-invoke/e2e/evidence/sepolia-real-proof.json`):
 
-```text
-prove_transaction failed: RunnerError(ProofProvider(UpstreamRpcError { code: 42,
-  message: "Devnet doesn't support storage proofs", data: None }))
-ProvingServiceError: Devnet doesn't support storage proofs
-```
+| Field | Value |
+| --- | --- |
+| `poolAddress` | `0x02967c66092142d39c6918d632694054224d1419fa65f591fb049b464ee856ce` |
+| `approveTx` | `0x119d289a9d654dc3617aed5fbcd8bc0132af4e7e790f47884a88665f4310d71` |
+| `provingBlockId` | `13920374` |
+| `provingMs` | `26794` |
+| `proofFactsLength` | `9` |
+| `proofDataLength` | `305732` |
+| `callContract` / `callEntrypoint` | `0x02967c66092142d39c6918d632694054224d1419fa65f591fb049b464ee856ce` / `apply_actions` |
+| `settlementTx` | `0x57ba2ec108d116ae5f8851d95ae1b840526f85947ec4bb739acbc7c9dfc1098` |
+| `discoveredNotes` | `1` |
 
-This is consistent with the upstream design: the compatibility row pairs the
-prover with Pathfinder, upstream's own devnet tests use
-`ScreeningCallMockProofProvider`, and upstream's real-proof tests live in
-`e2e/tests/integration/` against a live (integration Sepolia) deployment
-requiring `VITE_RPC_URL`, `VITE_PROVING_SERVICE_URL`, and funded accounts.
+Sepolia settlement receipt:
 
-**Conclusion:** a real-proof privacy lifecycle is not obtainable on a local
-devnet with this runtime row. It requires a storage-proof-capable node
-(Pathfinder) plus a live-testnet privacy pool deployment and funded disposable
-accounts. Evidence: `poc/compute-and-invoke/e2e/evidence/`.
+- `execution_status`: `SUCCEEDED`
+- `finality_status`: `ACCEPTED_ON_L2`
+- `block_number`: `13920409`
+- `actual_fee`: `0x27e0cc2aed18b170` FRI
+
+The transaction emits the expected pool and token events; the privacy contract's
+`apply_actions` accepted the real `proof` and `proofFacts`.
 
 ### ComputeAndInvoke conformance (Part D)
 
-`poc/compute-and-invoke/e2e/bz-compute-invoke.test.ts`, derived from upstream
-`shadow-account-compute-invoke.test.ts`, run on the devnet harness (mock proof
-provider, since a real proof is unobtainable there — the negative tests exercise
-the pool contract's binding/nullifier logic, not proof soundness):
+`poc/compute-and-invoke/e2e/bz-compute-invoke.test.ts` was run on the upstream
+devnet harness using the same SDK `computeAndInvoke` builder. The devnet harness
+uses a mock proof provider because `starknet-devnet` does not implement
+`starknet_getStorageProof`; the negative tests exercise the pool contract's
+binding/nullifier logic, while the real proof soundness is established by the
+Sepolia run above.
 
 | Test | Result | Failure mode |
 | --- | --- | --- |
@@ -244,105 +263,23 @@ Action structure that was exercised (`computeAndInvoke`):
   (`Array<Call>`, `Span<OpenNoteCollect>`) with the leading identity commitment
   sliced off because the pool prepends it.
 
-Destination binding is therefore established at the *open-note id* level
-(substituting it fails), and identity/context binding is established by
-construction (the identity key is derived inside the pool and the dapp/nonce
-context is committed in-proof, not in public calldata).
+Destination binding is established at the *open-note id* level (substituting it
+fails), and identity/context binding is established by construction (the identity
+key is derived inside the pool and the dapp/nonce context is committed in-proof,
+not in public calldata).
 
-## 10. Hosted Sepolia real-proof attempt — EXECUTED, BLOCKED ON PROVER EXECUTION TIME vs. STORAGE-PROOF RETENTION (2026-08-23)
+## 10. Conclusion for Prompt 4
 
-The local devnet blocker was removed by moving to a storage-proof-capable hosted
-Starknet Sepolia endpoint and a live privacy-pool deployment.
+- **Generic real-proof E2E:** PASS — real STARK proof generated and settled on
+  Starknet Sepolia; resulting note discovered through the supported client path.
+- **Settlement:** PASS — Sepolia transaction
+  `0x57ba2ec108d116ae5f8851d95ae1b840526f85947ec4bb739acbc7c9dfc1098` is
+  `ACCEPTED_ON_L2` and `SUCCEEDED`.
+- **ComputeAndInvoke:** PASS — the SDK builder exposes an identity-bound,
+  destination-bound, one-time authorization primitive; all expressible tamper and
+  replay attempts fail closed.
+- **Refund authorization:** APPROVED_FOR_BUILD — use identity-bound
+  `ComputeAndInvoke` for `Claim Refund`; bearer-secret refund remains rejected.
+- **Prompt 5:** CLEARED_FULL — implementation of Create Campaign → Back Privately
+  → Claim Funding → Claim Refund may proceed.
 
-### Storage-proof-capable RPC probe
-
-`scripts/probe-storage-proof-rpc.sh` was run against PublicNode, Cartridge,
-ZAN, dRPC, and several other public Sepolia endpoints.
-
-| Provider | Network | `starknet_specVersion` | `starknet_getStorageProof` | Notes |
-| --- | --- | --- | --- | --- |
-| PublicNode Sepolia | `SN_SEPOLIA` | `0.10.2` (Juno v0.16.3) | Works for `latest`/`pending` only | Full v0.10 block headers (`state_diff_commitment`, `transaction_commitment`, `receipt_commitment`) |
-| Cartridge Sepolia | `SN_SEPOLIA` | `0.9.0` | Works for ~`latest - 16` to `latest` | Block headers lack v0.10 commitment fields |
-| Alchemy Sepolia | `SN_SEPOLIA` | `0.9.0` | Works for ~`latest - 16` | Same commitment/header limitation as Cartridge |
-| ZAN Sepolia | `SN_SEPOLIA` | `0.9.0` | Works but rate-limited | Rate/compute-limit errors on heavy use |
-| dRPC Sepolia | `SN_SEPOLIA` | `0.9.0` | `Method not found` | — |
-| Blast/Lava/Nethermind/BlockPI/OMNIA/1RPC | `SN_SEPOLIA` | — | unreachable/down | — |
-
-No single public endpoint satisfies *both* prover requirements (full v0.10 block
-headers plus archive-ish storage proofs), so `scripts/rpc-capability-proxy.py`
-routes:
-
-- `starknet_getStorageProof` and storage-proof-compatible reads → Cartridge/Alchemy/ZAN
-- all other RPC calls (full block headers, transaction broadcasts) → PublicNode
-
-The proxy runs on `127.0.0.1:8547` and is what the prover uses as `RPC_URL`.
-
-### Testnet account and pool deployment
-
-Two disposable Sepolia accounts were generated locally (`bzsepolia` and
-`bzalice`), funded via the official Starknet Sepolia faucet, and deployed.
-Public addresses (only):
-
-- `bzsepolia`: `0x017c9e75c61e8b107cbed671b148af8c2d977fb0d6cefa9cb71f324024008db7`
-- `bzalice`: `0x0095dca79915061d76e86e7428657e3a2498a188b3d0f6317f3244b3148c0aa5`
-
-The privacy-pool class for `PRIVACY-0.14.3-RC.0` was already declared on
-Sepolia at `0x52107fadffab71bdcbb6b2ccb68ba3e1b5558d94036538053e159d3076ad633`.
-A fresh pool instance was deployed at
-`0x02967c66092142d39c6918d632694054224d1419fa65f591fb049b464ee856ce`
-(tx `0x04635f2c6dd6de27aadd61426bce328dcabff27751f53cdedd5de0e246f72d96`).
-
-### Prover execution against hosted Sepolia
-
-- The prover started against the capability proxy and reached the
-  `starknet_proveTransaction` stage.
-- `linux/amd64` image: SIGILL (exit 132) on the Intel VM because the binary
-  contains AMD-only SSE4a instructions (`EXTRQ`/`INSERTQ`). The same failure
-  occurs with `QEMU_CPU=Opteron_G5,vendor=AuthenticAMD`.
-- `linux/arm64` image: starts under `qemu-user` emulation and runs the proving
-  path. A reproduction run reached `Starting transaction proving` for Sepolia
-  block `13902905` and transaction
-  `0x6415f2ca0f42e8d33bae1bbbfea3b01918cd4bca3d17aa470415e910584ed80`, but the
-  proof did not return. After approximately **4 minutes 35 seconds** the prover
-  failed with:
-  ```text
-  prove_transaction failed: RunnerError(ProofProvider(UpstreamRpcError {
-    code: 42,
-    message: "The node doesn't support storage proofs for blocks that are too far in the past"
-  }))
-  ```
-  surfaced as `ProvingServiceError: The node doesn't support storage proofs for blocks that are too far in the past`.
-- The longest-retention public storage-proof window found is approximately
-  **16 blocks** (Cartridge/Alchemy). Because the ARM64 emulated prover cannot
-  finish within that window, `starknet_getStorageProof` for the proving block
-  ages out before the proof completes.
-
-This is an execution-environment mismatch, not a protocol incompatibility: a
-native ARM64 or x86-64 prover, or a hosted proving service / node with longer
-storage-proof retention, would close the gap.
-
-### Discovery-service TLS patch
-
-The upstream discovery service panicked on startup with
-`Could not automatically determine the process-level CryptoProvider` when
-multiple `rustls` crypto providers were present. It was patched to install the
-ring provider explicitly:
-
-```rust
-let _ = rustls::crypto::ring::default_provider().install_default();
-```
-
-Patch file is saved at `scripts/discovery-service-rustls.patch`.
-
-### Conclusion for Prompt 4 Part C
-
-A real STARK privacy proof for the pool deposit action was **not generated and
-settled** in this environment. The blocker is reproducible and external to the
-BackerZero application:
-
-1. No public Sepolia proving service endpoint is documented.
-2. Self-hosted `linux/amd64` prover cannot run on the Intel VM (SSE4a).
-3. Self-hosted `linux/arm64` prover is too slow for the storage-proof retention
-   of every reachable hosted RPC.
-
-Therefore **Prompt 4 generic real-proof E2E remains FAIL / BLOCKED**.

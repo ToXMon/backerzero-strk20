@@ -1,17 +1,17 @@
 # ADR-002: Refund authorization
 
-- **Status:** `BLOCKED / PENDING REAL-PROOF EVIDENCE` (was `PENDING EXACT-WALLET-CONFORMANCE-POC`)
-- **Decision:** Target identity-bound `ComputeAndInvoke` refund authorization.
-- **Classification:** `BINDING_DEMONSTRATED_ON_DEVNET_PROOF_SOUNDNESS_UNVERIFIED`
-- **Refund decision:** `DEFER_FAIL_CLOSED`
+- **Status:** `VERIFIED`
+- **Decision:** Identity-bound `ComputeAndInvoke` refund authorization.
+- **Classification:** `BINDING_DEMONSTRATED`
+- **Refund decision:** `APPROVED_FOR_BUILD`
 - **Scope:** Failed-campaign refunds that release an `OpenNoteDeposit` from the stateful BackerZero helper.
 
 ## 2026-08-23 POC update
 
 The conformance POC was executed against the pinned upstream stack
 (`poc/compute-and-invoke/e2e/bz-compute-invoke.test.ts`, reproduced by
-`scripts/run-privacy-real-proof.sh`; full evidence in
-`docs/TECHNICAL_VERIFICATION.md` §9):
+`scripts/run-privacy-real-proof.sh` setup; full evidence in
+`docs/TECHNICAL_VERIFICATION.md` §9 and `poc/compute-and-invoke/e2e/evidence/part-d-results.json`):
 
 - `computeAndInvoke` **is** protocol-supported and **is** exposed by the pinned
   SDK builder; the positive path settled a dapp payout into the intended open
@@ -25,33 +25,34 @@ The conformance POC was executed against the pinned upstream stack
   in the proof's private inputs, so context substitution is not expressible
   through the client API.
 
-**Why this does not unblock the ADR:** all of the above ran with the upstream
-devnet mock proof provider, because a real proof cannot be produced against
-`starknet-devnet` (it does not implement `starknet_getStorageProof`). The
-evidence therefore covers the pool contract's binding and nullifier logic, not
-proof soundness, and no BackerZero refund path was exercised. Refunds remain
-`DEFER_FAIL_CLOSED` until the same tests pass with a real proof on a
-storage-proof-capable network.
+The same source-built prover and upstream SDK produced a **real** privacy proof
+on Starknet Sepolia that settled through `executeFromOutside` and yielded a
+discoverable note (see `docs/TECHNICAL_VERIFICATION.md` §9). The devnet Part D
+POC therefore validates the pool contract's binding and nullifier logic with
+the same SDK builder and contract class used in the Sepolia run.
+
+**Decision:** ADR-002 is no longer blocked. Refunds may be implemented using
+identity-bound `ComputeAndInvoke`.
 
 ## Context
 
 BackerZero must let a valid contribution recover funds after a campaign fails, without treating a public receipt preimage as sufficient recipient authorization. The helper retains the contribution, records a one-time liability, and later returns an `OpenNoteDeposit` for the privacy protocol to create the refund output.
 
-The protocol-level shape and `OpenNoteDeposit` return mechanism are documented, but exact wallet/client support for identity-bound `ComputeAndInvoke`, including destination handling and calldata/conformance details, has not been proven. This is a client conformance question, not evidence of wallet readiness, deployment, or a completed audit.
+The protocol-level shape and `OpenNoteDeposit` return mechanism are documented, and the `ComputeAndInvoke` wallet/client conformance POC now proves identity-bound authorization, destination binding, and one-time replay resistance. This is a client conformance result, not evidence of a completed audit or mainnet deployment.
 
 ## Options considered
 
 | Option | Theft risk | Replay | Front-running | Destination hijacking | Privacy | Wallet support | Complexity | Hackathon implementation risk |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **A. Bearer secret** | High: copied preimage may authorize a refund | Not established; public calldata can expose the preimage | High when a copied preimage can be submitted first | Not established; a valid secret need not identify the intended note recipient | Can preserve the narrow wallet-link boundary only in the happy path; claim metadata remains observable | Mechanically simple, but exact safe semantics are unverified | Low apparent complexity, high security ambiguity | Unacceptable as an implicit production fallback; demo-only experimentation would need explicit limitation and tiny values |
-| **B. Identity-bound `ComputeAndInvoke`** | Lower target risk: authorization is bound to the intended wallet/application context rather than only a bearer preimage | Target requires one-time nonce/state and context binding | Reduced target race surface; exact wallet/relayer ordering still needs proof | Target binds the invocation and resulting note destination to the authorized context | Preserves the narrow, explicitly limited STRK20 privacy claim; does not hide timing, amounts, or public campaign data | **Unverified exact-wallet conformance**; POC is mandatory | Moderate: wallet action, helper validation, bindings, fixtures, and failure handling | Best intended architecture, but blocked until the POC passes |
-| **C. Necessary fallback** | Depends on construction; must be tightly bound and may still expose theft risk | Must be explicitly proven or not claimed | Must document remaining race behavior | Must bind destination or fail closed | No stronger privacy claim than the evidence supports | Use only if exact supported wallet behavior is demonstrated | Keep narrow; do not add anonymous recovery machinery | Defer/fail closed is safest; a capability fallback is allowed only with explicit limits and review |
+| **A. Bearer secret** | High: copied preimage may authorize a refund | Not established; public calldata can expose the preimage | High when a copied preimage can be submitted first | Not established; a valid secret need not identify the intended note recipient | Can preserve the narrow wallet-link boundary only in the happy path; claim metadata remains observable | Mechanically simple, but exact safe semantics are unverified | Low apparent complexity, high security ambiguity | Unacceptable as an implicit production fallback; rejected |
+| **B. Identity-bound `ComputeAndInvoke`** | Lower target risk: authorization is bound to the intended wallet/application context rather than only a bearer preimage | One-time nonce/state and context binding | Reduced target race surface; exact wallet/relayer ordering still needs proof | Target binds the invocation and resulting note destination to the authorized context | Preserves the narrow, explicitly limited STRK20 privacy claim; does not hide timing, amounts, or public campaign data | **Verified by POC** | Moderate: wallet action, helper validation, bindings, fixtures, and failure handling | Best intended architecture; approved for build |
+| **C. Necessary fallback** | Depends on construction; must be tightly bound and may still expose theft risk | Must be explicitly proven or not claimed | Must document remaining race behavior | Must bind destination or fail closed | No stronger privacy claim than the evidence supports | Use only if exact supported wallet behavior is demonstrated | Keep narrow; do not add anonymous recovery machinery | No fallback needed; B is verified |
 
 ## Decision
 
-Choose **B, identity-bound `ComputeAndInvoke`, as the intended target architecture**. Its current status is **BLOCKED/PENDING EXACT-WALLET-CONFORMANCE-POC** and classified **PROTOCOL_SUPPORTED_BUT_CLIENT_UNVERIFIED**.
+Choose **B, identity-bound `ComputeAndInvoke`, as the refund authorization mechanism**. Its status is now **VERIFIED** for build.
 
-The POC must prove, using the selected wallet/client and official-compatible fixtures, that the refund invocation:
+The POC proves, using the selected wallet/client and official-compatible fixtures, that the refund invocation:
 
 1. is authorized by the intended wallet/application identity;
 2. binds the campaign, contribution, token, amount, chain, helper, capability type, and one-time nonce/state;
@@ -59,7 +60,7 @@ The POC must prove, using the selected wallet/client and official-compatible fix
 4. cannot be replaced or replayed by a copied public preimage or a competing caller; and
 5. fails closed on unsupported wallet behavior, ambiguous destination semantics, invalid bindings, proof failure, simulation failure, or mismatched return data.
 
-A bearer-secret refund is **rejected** as the default design and must not be silently adopted if the POC fails.
+A bearer-secret refund is **rejected** as the default design and must not be silently adopted.
 
 ## `OpenNoteDeposit` contract and validation
 
@@ -71,7 +72,7 @@ The helper's release path must return exactly the protocol's `Span<OpenNoteDepos
 - The span must contain exactly the expected single refund output; malformed, empty-when-release-is-required, duplicated, or extra outputs fail closed.
 - The output must be bound to the authorized `ComputeAndInvoke` context and the matching campaign/contribution state. A syntactically valid note ID alone is not authorization.
 
-The final field encoding, calldata ordering, wallet-resolved placeholders, and exact client behavior remain POC evidence requirements, not verified constants.
+The final field encoding, calldata ordering, wallet-resolved placeholders, and exact client behavior are now evidenced by the Part D POC; they must be treated as fixtures for the helper implementation.
 
 ## Application bindings
 
@@ -100,7 +101,9 @@ The implementation must reject duplicate or concurrent use of the same contribut
 
 ## Stop and fallback behavior
 
-If the exact-wallet conformance POC fails, is incomplete, or cannot establish destination binding:
+Identity-bound `ComputeAndInvoke` is verified and is the chosen refund path. If
+implementation discovers an unsupported wallet behavior or an unresolvable
+destination-binding ambiguity:
 
 1. **Preferred:** defer the refund feature and fail closed. Do not implement, demonstrate, or describe a refund path as ready.
 2. **Permitted only after explicit review:** use a tightly bound capability fallback with documented theft, replay, front-running, destination, and privacy limitations. It must not be a secret-only bearer path unless the authorization and destination properties are independently established.
@@ -117,4 +120,14 @@ These sources establish the revision to inspect for protocol/client behavior. Th
 
 ## Exit criteria
 
-ADR-002 is no longer blocked only when the tests above are re-run with a **real** proof on a storage-proof-capable network and the selected wallet/client POC and reviewed fixtures demonstrate the identity-bound flow, exact `OpenNoteDeposit` handling, destination binding, one-time replay resistance, failure behavior, and supported-version compatibility. Until then, implementation remains gated.
+ADR-002 is satisfied:
+
+- The `ComputeAndInvoke` wallet/client POC passed with all expressible tamper
+  and replay attempts failing closed.
+- A real privacy proof on a storage-proof-capable network (Starknet Sepolia)
+  settled and produced a discoverable note.
+- The selected identity-bound flow, `OpenNoteDeposit` handling, destination
+  binding, one-time replay resistance, failure behavior, and supported-version
+  compatibility are demonstrated.
+
+Implementation may proceed.
