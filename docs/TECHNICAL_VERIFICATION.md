@@ -248,3 +248,91 @@ Destination binding is therefore established at the *open-note id* level
 (substituting it fails), and identity/context binding is established by
 construction (the identity key is derived inside the pool and the dapp/nonce
 context is committed in-proof, not in public calldata).
+
+## 10. Hosted Sepolia real-proof attempt — EXECUTED, BLOCKED ON PROVER EXECUTION TIME vs. STORAGE-PROOF RETENTION (2026-08-23)
+
+The local devnet blocker was removed by moving to a storage-proof-capable hosted
+Starknet Sepolia endpoint and a live privacy-pool deployment.
+
+### Storage-proof-capable RPC probe
+
+`scripts/probe-storage-proof-rpc.sh` was run against PublicNode, Cartridge,
+ZAN, dRPC, and several other public Sepolia endpoints.
+
+| Provider | Network | `starknet_specVersion` | `starknet_getStorageProof` | Notes |
+| --- | --- | --- | --- | --- |
+| PublicNode Sepolia | `SN_SEPOLIA` | `0.10.2` (Juno v0.16.3) | Works for `latest`/`pending` only | Full v0.10 block headers (`state_diff_commitment`, `transaction_commitment`, `receipt_commitment`) |
+| Cartridge Sepolia | `SN_SEPOLIA` | `0.9.0` | Works for ~`latest - 16` to `latest` | Block headers lack v0.10 commitment fields |
+| Alchemy Sepolia | `SN_SEPOLIA` | `0.9.0` | Works for ~`latest - 16` | Same commitment/header limitation as Cartridge |
+| ZAN Sepolia | `SN_SEPOLIA` | `0.9.0` | Works but rate-limited | Rate/compute-limit errors on heavy use |
+| dRPC Sepolia | `SN_SEPOLIA` | `0.9.0` | `Method not found` | — |
+| Blast/Lava/Nethermind/BlockPI/OMNIA/1RPC | `SN_SEPOLIA` | — | unreachable/down | — |
+
+No single public endpoint satisfies *both* prover requirements (full v0.10 block
+headers plus archive-ish storage proofs), so `scripts/rpc-capability-proxy.py`
+routes:
+
+- `starknet_getStorageProof` and storage-proof-compatible reads → Cartridge/Alchemy/ZAN
+- all other RPC calls (full block headers, transaction broadcasts) → PublicNode
+
+The proxy runs on `127.0.0.1:8547` and is what the prover uses as `RPC_URL`.
+
+### Testnet account and pool deployment
+
+Two disposable Sepolia accounts were generated locally (`bzsepolia` and
+`bzalice`), funded via the official Starknet Sepolia faucet, and deployed.
+Public addresses (only):
+
+- `bzsepolia`: `0x017c9e75c61e8b107cbed671b148af8c2d977fb0d6cefa9cb71f324024008db7`
+- `bzalice`: `0x0095dca79915061d76e86e7428657e3a2498a188b3d0f6317f3244b3148c0aa5`
+
+The privacy-pool class for `PRIVACY-0.14.3-RC.0` was already declared on
+Sepolia at `0x52107fadffab71bdcbb6b2ccb68ba3e1b5558d94036538053e159d3076ad633`.
+A fresh pool instance was deployed at
+`0x02967c66092142d39c6918d632694054224d1419fa65f591fb049b464ee856ce`
+(tx `0x04635f2c6dd6de27aadd61426bce328dcabff27751f53cdedd5de0e246f72d96`).
+
+### Prover execution against hosted Sepolia
+
+- The prover started against the capability proxy and reached the
+  `starknet_proveTransaction` stage.
+- `linux/amd64` image: SIGILL (exit 132) on the Intel VM because the binary
+  contains AMD-only SSE4a instructions (`EXTRQ`/`INSERTQ`). The same failure
+  occurs with `QEMU_CPU=Opteron_G5,vendor=AuthenticAMD`.
+- `linux/arm64` image: starts under `qemu-user` emulation and runs the proving
+  path, but a deposit proof takes approximately **5 minutes** on this VM.
+- The longest-retention public storage-proof window found is approximately
+  **16 blocks** (Cartridge/Alchemy), which corresponds to only **25–30 seconds**
+  of Sepolia history at observed block rates. Because the ARM64 emulated prover
+  cannot finish within that window, `starknet_getStorageProof` for the proving
+  block ages out before the proof completes.
+
+This is an execution-environment mismatch, not a protocol incompatibility: a
+native ARM64 or x86-64 prover, or a hosted proving service / node with longer
+storage-proof retention, would close the gap.
+
+### Discovery-service TLS patch
+
+The upstream discovery service panicked on startup with
+`Could not automatically determine the process-level CryptoProvider` when
+multiple `rustls` crypto providers were present. It was patched to install the
+ring provider explicitly:
+
+```rust
+let _ = rustls::crypto::ring::default_provider().install_default();
+```
+
+Patch file is saved at `scripts/discovery-service-rustls.patch`.
+
+### Conclusion for Prompt 4 Part C
+
+A real STARK privacy proof for the pool deposit action was **not generated and
+settled** in this environment. The blocker is reproducible and external to the
+BackerZero application:
+
+1. No public Sepolia proving service endpoint is documented.
+2. Self-hosted `linux/amd64` prover cannot run on the Intel VM (SSE4a).
+3. Self-hosted `linux/arm64` prover is too slow for the storage-proof retention
+   of every reachable hosted RPC.
+
+Therefore **Prompt 4 generic real-proof E2E remains FAIL / BLOCKED**.

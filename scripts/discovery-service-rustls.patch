@@ -1,0 +1,15 @@
+diff --git a/crates/discovery-service/src/main.rs b/crates/discovery-service/src/main.rs
+index 458e847..3c292cc 100644
+--- a/crates/discovery-service/src/main.rs
++++ b/crates/discovery-service/src/main.rs
+@@ -47,6 +47,11 @@ fn init_tracing(log_level: Option<&str>, format: LogFormat) {
+ 
+ #[tokio::main]
+ async fn main() {
++    // BackerZero verification patch: multiple rustls providers are enabled in
++    // the dependency graph, so the process-level provider must be selected
++    // explicitly before any TLS (wss:// RPC) connection is attempted.
++    let _ = rustls::crypto::ring::default_provider().install_default();
++
+     // Load environment variables from a .env file if it exists.
+     dotenv::dotenv().ok();

@@ -40,3 +40,7 @@ The executable conformance and negative tests live in [`e2e/`](e2e/README.md): t
 `computeAndInvoke` action shape against the pinned upstream devnet harness and record which tampering
 and replay attempts fail closed. They still run with the upstream mock proof provider, because a real
 proof is not obtainable on `starknet-devnet` — see `docs/TECHNICAL_VERIFICATION.md` §9.
+
+A hosted Sepolia real-proof attempt is also in `e2e/bz-sepolia-*.ts`. It reaches the prover, but the
+official prover image cannot complete a real proof in the current VM (amd64 SIGILL on Intel, arm64
+`qemu-user` too slow for the public storage-proof window). See `docs/TECHNICAL_VERIFICATION.md` §10.

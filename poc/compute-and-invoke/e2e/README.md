@@ -27,6 +27,29 @@ contracts. Docker is required for the prover.
 All accounts are disposable devnet accounts. No private key, viewing key, or
 receipt secret is committed here or written to `evidence/`.
 
+## Sepolia real-proof attempt (Prompt 4 Part C, hosted)
+
+Files:
+
+- `bz-sepolia-harness.ts` — loads disposable funded Sepolia accounts (public
+  addresses only are committed), deploys a fresh pool from the already-declared
+  class, and wires the real `ProvingServiceProofProvider` against a local
+  capability proxy.
+- `bz-sepolia-real-proof.test.ts` — smallest real-proof lifecycle on Sepolia:
+  STRK approve, deposit with real proof, `executeFromOutside` settlement, and
+  indexer note discovery.
+
+`scripts/run-privacy-real-proof.sh` starts the RPC capability proxy and the
+official prover, then runs the Sepolia test in the pinned upstream checkout.
+
+Current status: the prover starts and reaches `starknet_proveTransaction`, but
+**real proof generation cannot complete in this VM**:
+
+- `linux/amd64` image: SIGILL (exit 132) — AMD-only SSE4a instructions.
+- `linux/arm64` image: runs under `qemu-user` but a deposit proof takes ~5
+  minutes, longer than the ~16-block public storage-proof window on every
+  reachable hosted Sepolia RPC.
+
 ## Evidence
 
 - `evidence/real-proof-prover.log` — official prover startup and the
